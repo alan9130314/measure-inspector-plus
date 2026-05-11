@@ -1,0 +1,219 @@
+/* ── Reset ────────────────────────────────────────────────────── */
+#mt-root, #mt-root * {
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  line-height: 1;
+}
+
+/* ── Canvas overlay ─────────────────────────────────────────── */
+#mt-overlay { position:fixed; top:0; left:0; z-index:2147483600; pointer-events:none; overflow:hidden; }
+#mt-canvas  { position:absolute; top:0; left:0; display:block; }
+
+/* ── Element highlights ─────────────────────────────────────── */
+.mt-hl { position:fixed; pointer-events:none; z-index:2147483610; border-radius:2px; }
+.mt-hl-hover  { border:1px solid #58a6ff; background:rgba(88,166,255,.07); }
+.mt-hl-select { border:2px solid #f85149; background:rgba(248,81,73,.07); }
+
+.mt-size-badge {
+  position:fixed; z-index:2147483620;
+  font-size:11px; font-weight:700; padding:2px 7px; border-radius:4px;
+  pointer-events:none; white-space:nowrap;
+}
+.mt-size-badge-hover  { background:#1c6bab; color:#cae8ff; }
+.mt-size-badge-select { background:#a12b28; color:#ffc1be; }
+
+/* ── Distance labels ────────────────────────────────────────── */
+.mt-dist-label {
+  position:fixed; z-index:2147483630;
+  background:#7d4e00; color:#ffd680; border:1px solid #e3b341;
+  font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px;
+  pointer-events:none; white-space:nowrap;
+}
+
+/* ── Guide lines ────────────────────────────────────────────── */
+.mt-guide { position:fixed; z-index:2147483625; pointer-events:auto; cursor:pointer; }
+.mt-guide.h { left:0; right:0; height:2px; background:transparent; border-top:0.5px solid rgba(248,81,73,.5); }
+.mt-guide.v { top:0; bottom:0; width:2px; background:transparent; border-left:0.5px solid rgba(248,81,73,.5); }
+.mt-guide:hover    { border-color:rgba(248,81,73,.85); }
+.mt-guide.selected { border-color:#ff7b72; border-width:1px; }
+.mt-guide-label {
+  position:fixed; z-index:2147483626;
+  background:#6e1a18; color:#ffc1be; border:1px solid #f85149;
+  font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px; pointer-events:none;
+}
+
+/* ── Marquee ────────────────────────────────────────────────── */
+#mt-marquee {
+  position:fixed; z-index:2147483635;
+  border:1px solid #58a6ff; background:rgba(88,166,255,.06);
+  pointer-events:none; display:none;
+}
+
+/* ── Status bar ─────────────────────────────────────────────── */
+#mt-statusbar {
+  position:fixed; z-index:2147483660;
+  bottom:0; left:0; right:0; height:24px;
+  background:#0d1117; border-top:1px solid #30363d;
+  display:none; align-items:center; padding:0 14px; gap:16px;
+  font-size:11px; color:#8b949e;
+}
+#mt-statusbar .sb-mode   { color:#79c0ff; font-weight:700; }
+#mt-statusbar .sb-coords { color:#8b949e; font-family:monospace; }
+#mt-statusbar .sb-hint   { margin-left:auto; color:#6e7681; }
+
+/* ══════════════════════════════════════════════════════════════
+   CONTROL PANEL
+══════════════════════════════════════════════════════════════ */
+#mt-panel {
+  position:fixed; z-index:2147483650;
+  bottom:30px; left:50%; transform:translateX(-50%);
+  width:560px;
+  background:#161b22;
+  border:1px solid #30363d;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
+  pointer-events:auto;
+  user-select:none;
+  display:none;
+  flex-direction:column;
+}
+
+/* ── Handle + Toolbar ───────────────────────────────────────── */
+.cp-handle { background:#0d1117; border-bottom:1px solid #21262d; cursor:move; }
+.cp-toolbar { display:flex; align-items:center; gap:1px; padding:5px 8px; }
+.cp-btn {
+  display:flex; align-items:center; justify-content:center;
+  width:30px; height:30px; border-radius:6px;
+  color:#8b949e; cursor:pointer; flex-shrink:0;
+  transition:background .12s,color .12s; border:1px solid transparent;
+}
+.cp-btn svg { pointer-events:none; display:block; }
+.cp-btn:hover  { background:#21262d; color:#f0f6fc; border-color:#30363d; }
+.cp-btn.active { background:#1f3a6e; color:#79c0ff; border-color:#388bfd; }
+.cp-sep { width:1px; height:18px; background:#21262d; margin:0 4px; flex-shrink:0; }
+.cp-mode-pill {
+  margin-left:auto; font-size:10px; color:#6e7681;
+  padding:2px 7px; background:#21262d; border-radius:4px; white-space:nowrap;
+}
+.cp-mode-pill b { color:#79c0ff; font-weight:700; }
+.cp-kbd {
+  font-size:9px; background:#21262d; border:1px solid #30363d;
+  border-radius:3px; padding:1px 5px; color:#8b949e;
+  font-family:monospace; white-space:nowrap;
+}
+
+/* ── Inspector section ──────────────────────────────────────── */
+.cp-inspector { border-bottom:1px solid #21262d; }
+
+/* Inspector toggle header */
+.cp-ins-hdr {
+  display:flex; align-items:center; gap:6px;
+  padding:5px 10px 5px 8px; background:#0d1117;
+  border-bottom:1px solid #21262d; cursor:pointer; user-select:none;
+  transition:background .12s;
+}
+.cp-ins-hdr:hover { background:#161b22; }
+.cp-ins-chevron { color:#6e7681; flex-shrink:0; display:flex; }
+.cp-ins-label  { font-size:10px; font-weight:700; color:#484f58; text-transform:uppercase; letter-spacing:.8px; }
+.cp-ins-quick  { margin-left:auto; display:flex; align-items:center; gap:6px; }
+.cp-ins-qtag   { font-size:11px; font-weight:700; color:#f85149; font-family:monospace; }
+.cp-ins-qsel   { font-size:10px; color:#58a6ff; font-family:monospace; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cp-ins-qsize  { font-size:11px; font-weight:700; color:#f0f6fc; font-family:monospace; white-space:nowrap; }
+
+.cp-ins-placeholder {
+  padding:14px; text-align:center; font-size:11px;
+  color:#484f58; font-style:italic; background:#0d1117;
+}
+.cp-ins-pos {
+  padding:3px 10px; font-size:10px; color:#484f58;
+  font-family:monospace; background:#0d1117; border-bottom:1px solid #21262d;
+}
+
+/* Two-column body */
+.cp-ins-body {
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:0;
+}
+
+/* ── Box Model column ───────────────────────────────────────── */
+.cp-bm {
+  padding:10px;
+  border-right:1px solid #21262d;
+}
+.bm-header {
+  font-size:9px; font-weight:700; color:#484f58;
+  text-transform:uppercase; letter-spacing:.8px; margin-bottom:7px;
+}
+.bm-layer {
+  border-radius:4px; padding:3px 5px;
+  font-size:9px; font-weight:700;
+}
+.bm-margin  { background:rgba(227,179,65,.1);  color:#e3b341; border:1px solid rgba(227,179,65,.3); }
+.bm-border  { background:rgba(248,81,73,.1);   color:#f85149; border:1px solid rgba(248,81,73,.25); margin:2px; }
+.bm-padding { background:rgba(88,166,255,.1);  color:#58a6ff; border:1px solid rgba(88,166,255,.25); margin:2px; }
+.bm-content {
+  background:rgba(163,113,247,.15); color:#d2a8ff;
+  border:1px solid rgba(163,113,247,.3); margin:2px;
+  padding:5px 4px; font-size:11px; font-weight:700;
+  text-align:center;
+}
+.bm-row {
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:9px; padding:1px 0;
+}
+.bm-mid {
+  display:flex; align-items:center; gap:2px;
+  font-size:9px;
+}
+.bm-mid > .bm-layer { flex:1; min-width:0; }
+.bm-zone-label { opacity:.6; }
+
+/* ── Properties column ──────────────────────────────────────── */
+.cp-props { padding:8px 10px; overflow-y:auto; max-height:200px; }
+.cp-prop-group { margin-bottom:8px; }
+.cp-prop-group:last-child { margin-bottom:0; }
+.cp-prop-title {
+  font-size:9px; font-weight:700; color:#484f58;
+  text-transform:uppercase; letter-spacing:.8px; margin-bottom:4px;
+}
+.cp-prop-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:2px 0; gap:8px;
+}
+.cp-prop-key { font-size:11px; color:#8b949e; flex-shrink:0; }
+.cp-prop-val {
+  font-size:11px; color:#cae8ff;
+  font-weight:600; font-family:monospace;
+  text-align:right; word-break:break-all;
+  display:flex; align-items:center; gap:3px;
+}
+.mt-color-chip {
+  display:inline-block; width:10px; height:10px;
+  border-radius:2px; border:1px solid rgba(255,255,255,.2);
+  flex-shrink:0;
+}
+
+/* ── Shortcuts section ──────────────────────────────────────── */
+.cp-sc-toggle {
+  display:flex; align-items:center; gap:6px;
+  padding:6px 10px 6px 8px; font-size:10px; font-weight:700;
+  color:#484f58; text-transform:uppercase; letter-spacing:.8px;
+  cursor:pointer; border-top:1px solid #21262d; transition:color .12s;
+  background:#0d1117;
+}
+.cp-sc-toggle:hover { color:#8b949e; }
+.cp-sc-body {
+  display:none;
+  grid-template-columns:1fr 1fr;
+  gap:0 16px;
+  padding:8px 12px 10px;
+  border-top:1px solid #21262d;
+  background:#0d1117;
+}
+.cp-sc-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:3px 0; gap:8px;
+}
+.cp-sc-label { font-size:11px; color:#8b949e; }

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 260px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #1a1a2e;
+      background: #f8f9fc;
+    }
+    .header {
+      background: linear-gradient(135deg, #6c63ff, #4facfe);
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header h1 { font-size: 15px; font-weight: 700; }
+    .header .icon { font-size: 20px; }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #eee;
+      background: white;
+    }
+    .toggle-label { font-weight: 600; }
+    .toggle-sub { font-size: 11px; color: #888; margin-top: 2px; }
+    .switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #ccc;
+      border-radius: 24px;
+      transition: .3s;
+    }
+    .slider:before {
+      content: '';
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: .3s;
+    }
+    input:checked + .slider { background: #6c63ff; }
+    input:checked + .slider:before { transform: translateX(20px); }
+    .shortcuts {
+      padding: 12px 16px;
+      background: white;
+      border-bottom: 1px solid #eee;
+    }
+    .shortcuts h3 { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+    .shortcut-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+    }
+    .shortcut-row span { font-size: 12px; color: #444; }
+    kbd {
+      background: #f0f0f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+    .status-msg {
+      padding: 6px 16px;
+      font-size: 11px;
+      color: #888;
+      background: white;
+      border-bottom: 1px solid #eee;
+    }
+    .footer {
+      padding: 10px 16px;
+      font-size: 11px;
+      color: #aaa;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="icon">📐</span>
+    <h1>MeasureTool</h1>
+  </div>
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">Enable Measurement</div>
+      <div class="toggle-sub">Click elements to measure</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="toggleBtn">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="status-msg" id="status-msg">初始化中...</div>
+  <div class="shortcuts">
+    <h3>Keyboard Shortcuts</h3>
+    <div class="shortcut-row"><span>開啟/關閉工具</span><kbd>Ctrl+Shift+M</kbd></div>
+    <div class="shortcut-row"><span>Inspector 模式</span><kbd>1</kbd></div>
+    <div class="shortcut-row"><span>Guides 模式</span><kbd>2</kbd></div>
+    <div class="shortcut-row"><span>顯示/隱藏面板</span><kbd>M</kbd></div>
+    <div class="shortcut-row"><span>新增水平輔助線</span><kbd>H</kbd></div>
+    <div class="shortcut-row"><span>新增垂直輔助線</span><kbd>V</kbd></div>
+    <div class="shortcut-row"><span>切換吸附</span><kbd>S</kbd></div>
+    <div class="shortcut-row"><span>清除所有輔助線</span><kbd>Q</kbd></div>
+    <div class="shortcut-row"><span>取消選取</span><kbd>Esc</kbd></div>
+    <div class="shortcut-row"><span>多選元素</span><kbd>Shift+Click</kbd></div>
+    <div class="shortcut-row"><span>框選多元素</span><kbd>拖曳</kbd></div>
+    <div class="shortcut-row"><span>DOM 父層</span><kbd>↑</kbd></div>
+    <div class="shortcut-row"><span>DOM 子層</span><kbd>↓</kbd></div>
+    <div class="shortcut-row"><span>微調輔助線</span><kbd>← →</kbd></div>
+    <div class="shortcut-row"><span>微調 10px</span><kbd>Shift+↑↓←→</kbd></div>
+  </div>
+  <div class="footer">懸停=檢查 · 點擊=釘選 · 拖曳=框選</div>
+  <script src="popup.js"></script>
+</body>
+</html>

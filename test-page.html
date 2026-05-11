@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>MeasureTool Test Page</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+  .page { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+  h1 { color: #333; margin-bottom: 8px; }
+  .subtitle { color: #888; margin-bottom: 40px; }
+  .cards {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    flex: 1;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  .card h2 { margin: 0 0 12px; font-size: 16px; color: #6c63ff; }
+  .card p { margin: 0; color: #555; font-size: 14px; line-height: 1.6; }
+  .badge {
+    display: inline-block;
+    background: #ff6584;
+    color: white;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+  .grid-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .box {
+    background: white;
+    height: 80px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #aaa;
+    border: 2px solid #eee;
+  }
+  .box:nth-child(2) { border-color: #6c63ff; color: #6c63ff; }
+  .box:nth-child(5) { background: #6c63ff; color: white; border-color: #6c63ff; }
+  .flex-section {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    margin-bottom: 40px;
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+  }
+  .sidebar {
+    width: 180px;
+    flex-shrink: 0;
+    background: #f0eeff;
+    padding: 16px;
+    border-radius: 8px;
+  }
+  .content-area { flex: 1; }
+  .content-area p { color: #555; font-size: 14px; line-height: 1.8; margin: 0 0 12px; }
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #6c63ff;
+    color: white;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 8px;
+  }
+  .btn.outline {
+    background: transparent;
+    border: 2px solid #6c63ff;
+    color: #6c63ff;
+  }
+  .spacing-demo {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    margin-bottom: 40px;
+    display: flex;
+    gap: 60px;
+    align-items: center;
+    justify-content: center;
+  }
+  .demo-box {
+    width: 100px;
+    height: 60px;
+    background: #4facfe;
+    border-radius: 6px;
+  }
+  .demo-box2 {
+    width: 140px;
+    height: 80px;
+    background: #a8e063;
+    border-radius: 6px;
+    margin: 20px 0;
+  }
+  .instructions {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 20px 24px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 2;
+  }
+  .instructions span { color: #6c63ff; font-weight: 700; }
+  code { background: #2d2d4e; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>MeasureTool 測試頁面</h1>
+  <p class="subtitle">啟用擴充功能後，懸停在任何元素上即可測量</p>
+
+  <div class="instructions">
+    <strong style="color:#4facfe">如何使用：</strong><br>
+    1. 點擊瀏覽器工具列的 📐 圖示開啟工具<br>
+    2. <span>懸停</span>在元素上查看尺寸與 CSS 屬性<br>
+    3. <span>點擊</span>釘選元素，再懸停其他元素查看距離<br>
+    4. <code>Shift+Click</code> 多選元素<br>
+    5. 按 <code>H</code> / <code>V</code> 鍵新增水平/垂直輔助線（游標位置）<br>
+    6. 按 <code>G</code> 清除所有輔助線，<code>Esc</code> 取消選取<br>
+    7. 按 <code>↑↓</code> 在 DOM 樹中導航父子層
+  </div>
+
+  <br>
+
+  <div class="cards">
+    <div class="card">
+      <h2>Card One</h2>
+      <p>這是一個卡片元素。嘗試懸停在上面查看 padding、border 與 margin 的盒模型資訊。</p>
+      <span class="badge">Badge</span>
+    </div>
+    <div class="card">
+      <h2>Card Two</h2>
+      <p>點擊釘選此卡片，再移到旁邊的卡片，即可看到兩者之間的間距測量線。</p>
+    </div>
+    <div class="card">
+      <h2>Card Three</h2>
+      <p>使用 Shift+Click 同時選取多個卡片，測量整個群組的邊界距離。</p>
+    </div>
+  </div>
+
+  <div class="grid-section">
+    <div class="box">Box 1</div>
+    <div class="box">Box 2 (selected style)</div>
+    <div class="box">Box 3</div>
+    <div class="box">Box 4</div>
+    <div class="box">Box 5 (filled)</div>
+    <div class="box">Box 6</div>
+  </div>
+
+  <div class="flex-section">
+    <div class="sidebar">
+      <strong>Sidebar</strong>
+      <p style="font-size:12px;color:#888;margin-top:8px">180px fixed width<br>with padding 16px</p>
+    </div>
+    <div class="content-area">
+      <p>主要內容區域使用 flex: 1 自動填滿剩餘空間。嘗試測量 sidebar 到 content 的距離（應為 32px gap）。</p>
+      <p>也可以點擊這段文字區域，在盒模型面板中查看它的 margin 與 padding 值。</p>
+      <div>
+        <span class="btn">Primary</span>
+        <span class="btn outline">Outline</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacing-demo">
+    <div class="demo-box"></div>
+    <div>
+      <div class="demo-box2"></div>
+    </div>
+    <div class="demo-box"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "MeasureTool",
+  "version": "1.0.0",
+  "description": "Web measurement tool: distances, box model, guides, CSS inspector",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
+    "default_title": "MeasureTool (點擊開關)"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+M"
+      },
+      "description": "Toggle MeasureTool"
+    }
+  }
+}

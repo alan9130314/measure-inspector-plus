@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(convert --version)",
+      "Bash(node gen-icons.js)"
+    ]
+  }
+}
