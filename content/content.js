@@ -205,24 +205,21 @@
     const guidBtn = iconBtn(IC.guides, 'Guides  [2]', S.mode === MODE_GUIDES, leftBar);
     guidBtn.addEventListener('click', () => { S.mode = MODE_GUIDES; updatePanel(); updateStatusBar(); });
 
-    el('div', 'cp-toolbar-status', toolbar, 'id=cp-toolbar-status');
+    const statusBar = el('div', 'cp-toolbar-status', toolbar, 'id=cp-toolbar-status');
+    el('span', 'sb-left', statusBar, 'id=cp-status-left');
+    el('span', 'sb-coords', statusBar, 'id=cp-status-coords');
 
     const rightBar = el('div', 'cp-toolbar-right', toolbar);
-    const toolsWrap = el('div', 'cp-toolbar-tools', rightBar);
     const tailWrap = el('div', 'cp-toolbar-tail', rightBar);
-
-    if (S.mode === MODE_GUIDES) {
-      const snapBtn = iconBtn(IC.snap, 'Snap  [S]', S.snap, toolsWrap);
-      snapBtn.addEventListener('click', () => { S.snap = !S.snap; updatePanel(); updateStatusBar(); });
-    }
 
     const unitBtn = el('div', 'cp-btn cp-unit-btn', tailWrap);
     unitBtn.textContent = S.unit;
     unitBtn.title = 'Toggle units  [U]';
     unitBtn.addEventListener('click', toggleUnit);
 
-    const remRootWrap = el('div', 'cp-rem-root-wrap', tailWrap);
-    remRootWrap.style.display = S.unit === 'rem' ? 'flex' : 'none';
+    const remRootWrap = el('div', 'cp-rem-root-wrap', statusBar);
+    remRootWrap.style.visibility = S.unit === 'rem' ? 'visible' : 'hidden';
+    remRootWrap.style.pointerEvents = S.unit === 'rem' ? 'auto' : 'none';
     el('span', 'cp-rem-root-label', remRootWrap).textContent = '1rem=';
     const remInp = el('input', 'cp-rem-root-inp', remRootWrap, 'id=cp-rem-root-inp');
     remInp.type = 'number';
@@ -244,11 +241,6 @@
       if (inspected) showInspector(inspected);
     });
 
-    if (S.mode === MODE_GUIDES) {
-      const clr = iconBtn(IC.clear, 'Clear Guides  [Q]', false, toolsWrap);
-      clr.addEventListener('click', () => { S.guides = []; redraw(); });
-    }
-
     const themeBtn = iconBtn(
       S.theme === 'light' ? IC.moon : IC.sun,
       S.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme',
@@ -265,6 +257,27 @@
 
     // Drag handle behaviour (drag by toolbar area)
     makeDraggable(PANEL, handle);
+
+    // ── Guides tools section (below toolbar, same level as inspector) ───────
+    if (S.mode === MODE_GUIDES) {
+      const guidesSection = el('div', 'cp-guides-tools', PANEL);
+      const guidesHead = el('div', 'cp-guides-tools-head', guidesSection);
+      const guidesBtns = el('div', 'cp-guides-tools-actions', guidesHead);
+
+      const snapBtn = iconBtn(IC.snap, 'Snap  [S]', S.snap, guidesBtns);
+      snapBtn.addEventListener('click', () => {
+        S.snap = !S.snap;
+        updatePanel();
+        updateStatusBar();
+      });
+
+      const clrBtn = iconBtn(IC.clear, 'Clear Guides  [Q]', false, guidesBtns);
+      clrBtn.addEventListener('click', () => {
+        S.guides = [];
+        S.activeGuide = null;
+        redraw();
+      });
+    }
 
     // ── Inspector section (only in inspector mode) ───────────────────────────
     if (S.mode === MODE_INSPECTOR) {
@@ -1679,13 +1692,11 @@
 
   // ── Status Bar ────────────────────────────────────────────────────────────
   function updateStatusBar() {
-    const bar = ROOT && ROOT.querySelector('#cp-toolbar-status');
-    if (!bar) return;
-    const sel = S.selected.length ? `<span class="sb-sel">${S.selected.length} selected</span>` : '';
-    bar.innerHTML = `
-      <span class="sb-left">${sel}</span>
-      <span class="sb-coords">x: ${Math.round(S.mouseX)} y: ${Math.round(S.mouseY)}</span>
-    `;
+    const left = ROOT && ROOT.querySelector('#cp-status-left');
+    const coords = ROOT && ROOT.querySelector('#cp-status-coords');
+    if (!left || !coords) return;
+    left.innerHTML = S.selected.length ? `<span class="sb-sel">${S.selected.length} selected</span>` : '';
+    coords.textContent = `x: ${Math.round(S.mouseX)} y: ${Math.round(S.mouseY)}`;
   }
 
   function readInspectorBmPx() {
