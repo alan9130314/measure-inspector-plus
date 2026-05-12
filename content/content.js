@@ -12,7 +12,7 @@
     enabled:       false,
     mode:          MODE_INSPECTOR,
     snap:          true,
-    inspectorOpen: true,
+    inspectorOpen: false,
     selected:  [],       // pinned elements
     hovered:   null,
     guides:    [],       // { id, type:'h'|'v', pos, selected:false }
@@ -34,12 +34,18 @@
 
   // ── SVG Icon set ─────────────────────────────────────────────────────────
   const IC = {
-    inspect: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 1.5L7.5 11.5 9.2 8.3 12.5 6.5 2.5 1.5Z" fill="currentColor"/><line x1="10.5" y1="10.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
-    guides:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="1" y1="4.5" x2="13" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="1" y1="9.5" x2="13" y2="9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="4.5" y1="1" x2="4.5" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".4"/><line x1="9.5" y1="1" x2="9.5" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".4"/></svg>`,
-    snap:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2v3.5a4 4 0 008 0V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="7" y1="9.5" x2="7" y2="12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="4.5" y1="12.5" x2="9.5" y2="12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-    hguide:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="1" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="3.5" x2="1" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".5"/><line x1="13" y1="3.5" x2="13" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".5"/></svg>`,
-    vguide:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="7" y1="1" x2="7" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="3.5" y1="1" x2="10.5" y2="1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".5"/><line x1="3.5" y1="13" x2="10.5" y2="13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".5"/></svg>`,
-    clear:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="4" x2="12" y2="4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 4V3a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M3.5 4l.6 7a.5.5 0 00.5.5h5.8a.5.5 0 00.5-.5L11.5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    // Magnifying glass — universal "inspect" metaphor
+    inspect: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5.5" cy="5.5" r="3.5" stroke="currentColor" stroke-width="1.5"/><line x1="8.2" y1="8.2" x2="12.5" y2="12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    // Crosshair — "guides / reference lines" mode
+    guides:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.5"/><line x1="7" y1="1" x2="7" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="7" y1="10" x2="7" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="7" x2="4" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    // Horseshoe magnet — snap-to-edge
+    snap:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 2v3.5a4.5 4.5 0 009 0V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2.5" y1="10.5" x2="2.5" y2="12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="11.5" y1="10.5" x2="11.5" y2="12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+    // Horizontal measurement line with end caps
+    hguide:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="4" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="4" x2="12" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    // Vertical measurement line with end caps
+    vguide:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="7" y1="2" x2="7" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="2" x2="10" y2="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="12" x2="10" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    // Trash can with detail lines
+    clear:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="4" x2="12" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.5 4V2.5a.5.5 0 01.5-.5h4a.5.5 0 01.5.5V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 4l.75 8h6.5L11.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="7" y1="6.5" x2="7" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5.5" y1="6.5" x2="5.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="8.5" y1="6.5" x2="8.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
     chevD:   `<svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 3l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     chevR:   `<svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M3 1.5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   };
@@ -521,15 +527,23 @@
   }
 
   // ── Element Picking ───────────────────────────────────────────────────────
+  // elementsFromPoint includes pointer-events:none elements (unlike elementFromPoint),
+  // which lets us reach deeply nested elements even when ancestor <a> tags or wrappers
+  // have absorbed pointer events via CSS (e.g. `a * { pointer-events:none }`).
+  // We skip MT overlay elements, html/body, zero-size elements, and truly invisible
+  // elements (visibility:hidden / opacity:0) to reach the deepest visible page element.
   function pickEl(x, y) {
-    OVERLAY.style.pointerEvents = 'none';
-    if (ROOT) ROOT.style.pointerEvents = 'none';
-    const found = document.elementFromPoint(x, y);
-    OVERLAY.style.pointerEvents = '';
-    if (ROOT) ROOT.style.pointerEvents = '';
-    if (!found || found === document.documentElement || found === document.body) return null;
-    if (found.closest('#mt-root')) return null;
-    return found;
+    const hits = document.elementsFromPoint(x, y);
+    for (const el of hits) {
+      if (el === document.documentElement || el === document.body) continue;
+      if (el.closest('#mt-root')) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) continue;
+      const cs = window.getComputedStyle(el);
+      if (cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) continue;
+      return el;
+    }
+    return null;
   }
 
   function elementsInRect(x1, y1, x2, y2) {
@@ -757,10 +771,10 @@
     const contentBox = { l: r.left+bl+pl, t: r.top+bt+pt, r: r.right-br-pr, b: r.bottom-bb-pb };
 
     // DevTools palette
-    const C_MARGIN  = 'rgba(246,178,107,0.55)';
-    const C_BORDER  = 'rgba(255,229,153,0.5)';
-    const C_PADDING = 'rgba(147,196,125,0.55)';
-    const C_CONTENT = 'rgba(111,168,220,0.6)';
+    const C_MARGIN  = 'rgba(255,159,26,0.3)';
+    const C_BORDER  = 'rgba(47,124,255,0.18)';
+    const C_PADDING = 'rgba(32,199,217,0.22)';
+    const C_CONTENT = 'rgba(124,92,255,0.28)';
 
     CTX.save();
 
@@ -808,18 +822,18 @@
     const midY = (borderBox.t + borderBox.b) / 2;
 
     // Margin labels
-    if (mt > 0) drawLabel(mt, midX, marginBox.t + mt/2,  'rgba(180,100,20,.85)', '#fff8e1');
-    if (mb > 0) drawLabel(mb, midX, borderBox.b + mb/2,  'rgba(180,100,20,.85)', '#fff8e1');
-    if (ml > 0) drawLabel(ml, marginBox.l + ml/2, midY,  'rgba(180,100,20,.85)', '#fff8e1');
-    if (mr > 0) drawLabel(mr, borderBox.r + mr/2, midY,  'rgba(180,100,20,.85)', '#fff8e1');
+    if (mt > 0) drawLabel(mt, midX, marginBox.t + mt/2,  'rgba(130,78,0,.92)', '#ffe9c3');
+    if (mb > 0) drawLabel(mb, midX, borderBox.b + mb/2,  'rgba(130,78,0,.92)', '#ffe9c3');
+    if (ml > 0) drawLabel(ml, marginBox.l + ml/2, midY,  'rgba(130,78,0,.92)', '#ffe9c3');
+    if (mr > 0) drawLabel(mr, borderBox.r + mr/2, midY,  'rgba(130,78,0,.92)', '#ffe9c3');
 
     // Padding labels
     const pmx = (paddingBox.l + paddingBox.r) / 2;
     const pmy = (paddingBox.t + paddingBox.b) / 2;
-    if (pt > 0) drawLabel(pt, pmx, paddingBox.t + pt/2,  'rgba(50,120,60,.85)',  '#d5f5d5');
-    if (pb > 0) drawLabel(pb, pmx, contentBox.b + pb/2,  'rgba(50,120,60,.85)',  '#d5f5d5');
-    if (pl > 0) drawLabel(pl, paddingBox.l + pl/2, pmy,  'rgba(50,120,60,.85)',  '#d5f5d5');
-    if (pr > 0) drawLabel(pr, contentBox.r + pr/2, pmy,  'rgba(50,120,60,.85)',  '#d5f5d5');
+    if (pt > 0) drawLabel(pt, pmx, paddingBox.t + pt/2,  'rgba(0,95,106,.92)',  '#d8faff');
+    if (pb > 0) drawLabel(pb, pmx, contentBox.b + pb/2,  'rgba(0,95,106,.92)',  '#d8faff');
+    if (pl > 0) drawLabel(pl, paddingBox.l + pl/2, pmy,  'rgba(0,95,106,.92)',  '#d8faff');
+    if (pr > 0) drawLabel(pr, contentBox.r + pr/2, pmy,  'rgba(0,95,106,.92)',  '#d8faff');
 
     // Content size label
     if (cw > 30 && ch > 16) {
@@ -848,10 +862,12 @@
       if (S.selected.length > 0) {
         S.selected.forEach(el => drawElementExtensions(el));
         drawGuideElementDots(S.selected);
+        S.selected.forEach(el => drawLayoutGaps(el));
       }
       S.selected.forEach(el => drawBoxModelOverlay(el));
       drawDistances();
       if (S.hovered && S.selected.length === 0) {
+        drawLayoutGaps(S.hovered);
         drawBoxModelOverlay(S.hovered);
         drawNeighborDistances(S.hovered);
       }
@@ -878,24 +894,28 @@
   // Distance between selected and hovered
   function drawDistances() {
     if (!S.selected.length || !S.hovered) return;
-    // Skip if hovered IS one of the selected elements
     if (S.selected.includes(S.hovered)) return;
-    const selR = unionRect(S.selected.map(e => e.getBoundingClientRect()));
-    const hovR = S.hovered.getBoundingClientRect();
+
+    const hovR     = S.hovered.getBoundingClientRect();
+    const selRects = S.selected.map(e => e.getBoundingClientRect());
+    const selR     = unionRect(selRects);
     if (!selR) return;
 
-    // Skip if hovered element is an ancestor of any selected element
+    // Containment check still uses union rect
     if (S.selected.some(sel => S.hovered.contains(sel))) {
-      renderContainmentLines(hovR, selR); // show inset from container
+      renderContainmentLines(hovR, selR);
       return;
     }
-    // Skip if selected is ancestor of hovered
     if (S.selected.some(sel => sel.contains(S.hovered))) {
       renderContainmentLines(selR, hovR);
       return;
     }
 
-    renderDistanceLines(selR, hovR);
+    // Use individual rects for distance lines so that each selected element's
+    // gap to the hovered element is computed independently.  This prevents the
+    // union-rect from swallowing C when it sits between A and B, which was the
+    // cause of non-parallel reference lines.
+    selRects.forEach(sr => renderDistanceLines(sr, hovR));
   }
 
   // Distances from hovered element to its nearest non-ancestor neighbors
@@ -1074,8 +1094,8 @@
         addDistLabel(dTop, midX, Math.min(a.top,b.top) + dTop/2, 'v');
       }
       if (dBottom > 1) {
-        drawArrowLine(midX + 20, Math.min(a.bottom,b.bottom), midX + 20, Math.max(a.bottom,b.bottom), true);
-        addDistLabel(dBottom, midX + 20, Math.min(a.bottom,b.bottom) + dBottom/2, 'v');
+        drawArrowLine(midX, Math.min(a.bottom,b.bottom), midX, Math.max(a.bottom,b.bottom), true);
+        addDistLabel(dBottom, midX, Math.min(a.bottom,b.bottom) + dBottom/2, 'v');
       }
     }
 
@@ -1240,6 +1260,178 @@
       CTX.arc(x, y, 3, 0, Math.PI * 2);
       CTX.fill();
     }
+  }
+
+  // ── Hatch pattern for gap fills ──────────────────────────────────────────
+  function makeHatchPattern(lineColor) {
+    const sz  = 7;
+    const off = document.createElement('canvas');
+    off.width = sz; off.height = sz;
+    const c   = off.getContext('2d');
+    c.strokeStyle = lineColor;
+    c.lineWidth   = 1;
+    c.beginPath();
+    c.moveTo(-1, sz);    c.lineTo(sz,    -1);     // main diagonal tile
+    c.moveTo(0,  sz * 2); c.lineTo(sz * 2, 0);   // seamless right/bottom wrap
+    c.stroke();
+    return CTX.createPattern(off, 'repeat');
+  }
+
+  // ── Flex / Grid gap visualisation ────────────────────────────────────────
+  function groupByRow(rects) {
+    const sorted = rects.slice().sort((a, b) => a.top - b.top);
+    const rows = [];
+    let row = [sorted[0]], rowBottom = sorted[0].bottom;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].top >= rowBottom - 1) {
+        rows.push(row);
+        row = [sorted[i]];
+        rowBottom = sorted[i].bottom;
+      } else {
+        row.push(sorted[i]);
+        rowBottom = Math.max(rowBottom, sorted[i].bottom);
+      }
+    }
+    rows.push(row);
+    return rows;
+  }
+
+  function groupByCol(rects) {
+    const sorted = rects.slice().sort((a, b) => a.left - b.left);
+    const cols = [];
+    let col = [sorted[0]], colRight = sorted[0].right;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].left >= colRight - 1) {
+        cols.push(col);
+        col = [sorted[i]];
+        colRight = sorted[i].right;
+      } else {
+        col.push(sorted[i]);
+        colRight = Math.max(colRight, sorted[i].right);
+      }
+    }
+    cols.push(col);
+    return cols;
+  }
+
+  function drawLayoutGaps(container) {
+    const cs      = window.getComputedStyle(container);
+    const display = cs.display;
+    const isFlex  = display === 'flex' || display === 'inline-flex';
+    const isGrid  = display === 'grid' || display === 'inline-grid';
+    if (!isFlex && !isGrid) return;
+
+    const children = Array.from(container.children).filter(ch => {
+      if (ch.closest('#mt-root')) return false;
+      const r = ch.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    });
+    if (children.length < 2) return;
+
+    const cR    = container.getBoundingClientRect();
+    const rects = children.map(ch => ch.getBoundingClientRect());
+    const isColFlex = isFlex && cs.flexDirection.startsWith('column');
+    const gaps  = []; // { x1, y1, x2, y2, size, axis }
+
+    if (!isColFlex) {
+      // row-flex or grid: group into rows, detect column gaps
+      const rows = groupByRow(rects);
+
+      // Column gaps (deduplicated by x-range)
+      const seenH = new Set();
+      rows.forEach(row => {
+        row.slice().sort((a, b) => a.left - b.left).forEach((a, i, arr) => {
+          if (i === arr.length - 1) return;
+          const b = arr[i + 1];
+          const gap = b.left - a.right;
+          if (gap < 0.5) return;
+          const key = `${Math.round(a.right)},${Math.round(b.left)}`;
+          if (seenH.has(key)) return;
+          seenH.add(key);
+          gaps.push({ x1: a.right, y1: cR.top, x2: b.left, y2: cR.bottom, size: gap, axis: 'h' });
+        });
+      });
+
+      // Row gaps (grid or wrapping flex)
+      if (isGrid || (isFlex && cs.flexWrap !== 'nowrap')) {
+        for (let i = 0; i < rows.length - 1; i++) {
+          const maxBottom = Math.max(...rows[i].map(r => r.bottom));
+          const minTop    = Math.min(...rows[i + 1].map(r => r.top));
+          const gap = minTop - maxBottom;
+          if (gap > 0.5)
+            gaps.push({ x1: cR.left, y1: maxBottom, x2: cR.right, y2: minTop, size: gap, axis: 'v' });
+        }
+      }
+    } else {
+      // column-flex: group into columns, detect vertical gaps
+      const seenV = new Set();
+      groupByCol(rects).forEach(col => {
+        col.slice().sort((a, b) => a.top - b.top).forEach((a, i, arr) => {
+          if (i === arr.length - 1) return;
+          const b = arr[i + 1];
+          const gap = b.top - a.bottom;
+          if (gap < 0.5) return;
+          const key = `${Math.round(a.bottom)},${Math.round(b.top)}`;
+          if (seenV.has(key)) return;
+          seenV.add(key);
+          gaps.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: b.top, size: gap, axis: 'v' });
+        });
+      });
+    }
+
+    if (!gaps.length) return;
+
+    const hatchH = makeHatchPattern('rgba(255,159,26,.65)');
+    const hatchV = makeHatchPattern('rgba(32,199,217,.60)');
+
+    CTX.save();
+    CTX.lineWidth = 0.5;
+    CTX.setLineDash([]);
+    gaps.forEach(({ x1, y1, x2, y2, axis }) => {
+      const w = x2 - x1, h = y2 - y1;
+      if (axis === 'h') {
+        CTX.fillStyle   = hatchH;
+        CTX.strokeStyle = 'rgba(255,159,26,.55)';
+      } else {
+        CTX.fillStyle   = hatchV;
+        CTX.strokeStyle = 'rgba(32,199,217,.5)';
+      }
+      CTX.fillRect(x1, y1, w, h);
+      CTX.strokeRect(x1, y1, w, h);
+    });
+    CTX.restore();
+
+    // Labels placed at edge of each gap strip, not the midpoint of the container
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
+    gaps.forEach(({ x1, y1, x2, y2, size, axis }) => {
+      addGapLabel(Math.round(size), x1, y1, x2, y2, axis, vw, vh);
+    });
+  }
+
+  function addGapLabel(size, x1, y1, x2, y2, axis, vw, vh) {
+    const div = document.createElement('div');
+    div.className = axis === 'h' ? 'mt-gap-label mt-gap-label-h' : 'mt-gap-label mt-gap-label-v';
+    div.textContent = `${size}px`;
+
+    if (axis === 'h') {
+      // Column gap: centred horizontally in the strip, anchored to the top edge
+      const lx = Math.max(28, Math.min(vw - 28, (x1 + x2) / 2));
+      const ly = Math.max(4, Math.min(vh - 24, y1));
+      div.style.left      = `${lx}px`;
+      div.style.top       = `${ly}px`;
+      div.style.transform = 'translate(-50%, 4px)';
+    } else {
+      // Row gap: anchored to the left edge, centred vertically in the strip
+      const lx = Math.max(4, Math.min(vw - 60, x1));
+      const ly = Math.max(4, Math.min(vh - 20, (y1 + y2) / 2));
+      div.style.left      = `${lx}px`;
+      div.style.top       = `${ly}px`;
+      div.style.transform = 'translate(4px, -50%)';
+    }
+
+    ROOT.appendChild(div);
+    distLabels.push(div); // cleaned up by clearDistLabels() on each redraw
   }
 
   function drawSnapCrosshair() {

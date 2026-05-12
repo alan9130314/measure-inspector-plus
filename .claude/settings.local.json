@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(convert --version)",
-      "Bash(node gen-icons.js)"
+      "Bash(node gen-icons.js)",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
     ]
   }
 }
