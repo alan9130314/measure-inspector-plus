@@ -9,6 +9,7 @@
 
   const STORAGE_KEY    = 'inspectorBmPx';
   const REM_ROOT_KEY   = 'remRootPx';
+  const THEME_KEY      = 'uiTheme';
   const INS_GUTTER     = 5;
   const INS_BM_MIN     = 200;
   const INS_PROPS_MIN  = 160;
@@ -42,26 +43,25 @@
     inspectorBmPx:  null,
     /** 自訂 1rem 對應的 px（顯示換算用，預設 16） */
     remRootPx:      16,
+    /** `dark` | `light` — 面板與標籤配色 */
+    theme:          'dark',
+    shortcutsOpen:  false,
     /** ↑ 往父層時 push 的節點；↓ 優先回到最近一次離開的子節點 */
     domNavStack:    [],
   };
 
   // ── SVG Icon set ─────────────────────────────────────────────────────────
   const IC = {
-    // Magnifying glass — universal "inspect" metaphor
-    inspect: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5.5" cy="5.5" r="3.5" stroke="currentColor" stroke-width="1.5"/><line x1="8.2" y1="8.2" x2="12.5" y2="12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-    // Crosshair — "guides / reference lines" mode
-    guides:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.5"/><line x1="7" y1="1" x2="7" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="7" y1="10" x2="7" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="7" x2="4" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-    // Horseshoe magnet — snap-to-edge
-    snap:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 2v3.5a4.5 4.5 0 009 0V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2.5" y1="10.5" x2="2.5" y2="12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="11.5" y1="10.5" x2="11.5" y2="12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-    // Horizontal measurement line with end caps
-    hguide:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="4" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="4" x2="12" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-    // Vertical measurement line with end caps
-    vguide:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="7" y1="2" x2="7" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="2" x2="10" y2="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="12" x2="10" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-    // Trash can with detail lines
-    clear:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><line x1="2" y1="4" x2="12" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.5 4V2.5a.5.5 0 01.5-.5h4a.5.5 0 01.5.5V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 4l.75 8h6.5L11.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="7" y1="6.5" x2="7" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5.5" y1="6.5" x2="5.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="8.5" y1="6.5" x2="8.5" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
-    chevD:   `<svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 3l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    chevR:   `<svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M3 1.5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    // Consistent outline style (Tabler-like stroke language)
+    inspect: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M8.45 8.45L11.7 11.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    guides:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4.5h10M4.5 2v10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2 7h1M2 9.5h1M7 2v1M9.5 2v1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="4.5" cy="4.5" r="1" fill="currentColor"/></svg>`,
+    snap:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2.5v3.2a4 4 0 0 0 8 0V2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 10.2v1.6M11 10.2v1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    clear:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.5 4l.7 7.2h3.6L9.5 4M5.2 4V2.8h3.6V4" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.2 6.1v3.2M7.8 6.1v3.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+    shortcuts:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.6" y="2" width="10.8" height="9.4" rx="1.7" stroke="currentColor" stroke-width="1.2"/><path d="M3.3 4.7h1.3M5.4 4.7h1.3M7.5 4.7h1.3M9.6 4.7h1.3M3.3 6.8h1.3M5.4 6.8h1.3M7.5 6.8h1.3M9.6 6.8h1.3M3.3 8.9h3.9M8.1 8.9h2.8" stroke="currentColor" stroke-width="1.05" stroke-linecap="round"/></svg>`,
+    chevD:   `<svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.6 3.1l2.9 2.9 2.9-2.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    chevR:   `<svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M3.1 1.6L6 4.5 3.1 7.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    sun:     `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.4" stroke="currentColor" stroke-width="1.35"/><path d="M7 1.5v1.3M7 11.2v1.3M1.5 7h1.3M11.2 7h1.3M2.9 2.9l.9.9M10.2 10.2l.9.9M11.1 2.9l-.9.9M3.8 10.2l-.9.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+    moon:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.9 2.5a4.7 4.7 0 1 0 2.6 8.6 4.2 4.2 0 1 1-2.6-8.6z" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   };
 
   // ── DOM refs ─────────────────────────────────────────────────────────────
@@ -117,6 +117,11 @@
   let distLabels = [];
 
   // ── Build UI ─────────────────────────────────────────────────────────────
+  function applyTheme() {
+    if (!ROOT) return;
+    ROOT.classList.toggle('mt-theme-light', S.theme === 'light');
+  }
+
   function buildUI() {
     if (document.getElementById('mt-root')) {
       ROOT      = document.getElementById('mt-root');
@@ -125,6 +130,7 @@
       PANEL     = ROOT.querySelector('#mt-panel');
       MARQUEE   = ROOT.querySelector('#mt-marquee');
       CTX = CANVAS.getContext('2d');
+      applyTheme();
       return;
     }
 
@@ -136,6 +142,7 @@
     MARQUEE = el('div', null, ROOT, 'id=mt-marquee');
     PANEL   = el('div', null, ROOT, 'id=mt-panel');
     buildControlPanel();
+    applyTheme();
 
     document.documentElement.appendChild(ROOT);
 
@@ -183,33 +190,38 @@
     const handle = el('div', 'cp-handle', PANEL);
     const toolbar = el('div', 'cp-toolbar', handle);
 
-    const iconBtn = (icon, tip, isActive) => {
-      const b = el('div', 'cp-btn' + (isActive ? ' active' : ''), toolbar);
+    const leftBar = el('div', 'cp-toolbar-left', toolbar);
+
+    const iconBtn = (icon, tip, isActive, parent) => {
+      const b = el('div', 'cp-btn' + (isActive ? ' active' : ''), parent);
       b.innerHTML = icon;
       b.title = tip;
       return b;
     };
 
-    const inspBtn = iconBtn(IC.inspect, 'Inspector  [1]', S.mode === MODE_INSPECTOR);
+    const inspBtn = iconBtn(IC.inspect, 'Inspector  [1]', S.mode === MODE_INSPECTOR, leftBar);
     inspBtn.addEventListener('click', () => { S.mode = MODE_INSPECTOR; updatePanel(); updateStatusBar(); });
 
-    const guidBtn = iconBtn(IC.guides, 'Guides  [2]', S.mode === MODE_GUIDES);
+    const guidBtn = iconBtn(IC.guides, 'Guides  [2]', S.mode === MODE_GUIDES, leftBar);
     guidBtn.addEventListener('click', () => { S.mode = MODE_GUIDES; updatePanel(); updateStatusBar(); });
 
-    el('div', 'cp-sep', toolbar);
+    el('div', 'cp-toolbar-status', toolbar, 'id=cp-toolbar-status');
+
+    const rightBar = el('div', 'cp-toolbar-right', toolbar);
+    const toolsWrap = el('div', 'cp-toolbar-tools', rightBar);
+    const tailWrap = el('div', 'cp-toolbar-tail', rightBar);
 
     if (S.mode === MODE_GUIDES) {
-      const snapBtn = iconBtn(IC.snap, 'Snap  [S]', S.snap);
+      const snapBtn = iconBtn(IC.snap, 'Snap  [S]', S.snap, toolsWrap);
       snapBtn.addEventListener('click', () => { S.snap = !S.snap; updatePanel(); updateStatusBar(); });
-      el('div', 'cp-sep', toolbar);
     }
 
-    const unitBtn = el('div', 'cp-btn cp-unit-btn', toolbar);
+    const unitBtn = el('div', 'cp-btn cp-unit-btn', tailWrap);
     unitBtn.textContent = S.unit;
     unitBtn.title = 'Toggle units  [U]';
     unitBtn.addEventListener('click', toggleUnit);
 
-    const remRootWrap = el('div', 'cp-rem-root-wrap', toolbar);
+    const remRootWrap = el('div', 'cp-rem-root-wrap', tailWrap);
     remRootWrap.style.display = S.unit === 'rem' ? 'flex' : 'none';
     el('span', 'cp-rem-root-label', remRootWrap).textContent = '1rem=';
     const remInp = el('input', 'cp-rem-root-inp', remRootWrap, 'id=cp-rem-root-inp');
@@ -233,18 +245,23 @@
     });
 
     if (S.mode === MODE_GUIDES) {
-      el('div', 'cp-sep', toolbar);
-      const addH = iconBtn(IC.hguide, 'Add H-Guide  [H]', false);
-      addH.addEventListener('click', () => addGuide('h', S.mouseY));
-      const addV = iconBtn(IC.vguide, 'Add V-Guide  [V]', false);
-      addV.addEventListener('click', () => addGuide('v', S.mouseX));
-      const clr = iconBtn(IC.clear, 'Clear Guides  [Q]', false);
+      const clr = iconBtn(IC.clear, 'Clear Guides  [Q]', false, toolsWrap);
       clr.addEventListener('click', () => { S.guides = []; redraw(); });
     }
 
-    // Mode pill (right-aligned)
-    const pill = el('div', 'cp-mode-pill', toolbar);
-    pill.innerHTML = `<b>${S.mode === MODE_INSPECTOR ? 'Inspector' : 'Guides'}</b>${S.mode === MODE_GUIDES && S.snap ? ' · Snap' : ''}`;
+    const themeBtn = iconBtn(
+      S.theme === 'light' ? IC.moon : IC.sun,
+      S.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme',
+      false,
+      tailWrap
+    );
+    themeBtn.addEventListener('click', () => {
+      S.theme = S.theme === 'light' ? 'dark' : 'light';
+      try { chrome.storage.local.set({ [THEME_KEY]: S.theme }); } catch (_) { /* ignore */ }
+      applyTheme();
+      updatePanel();
+      updateStatusBar();
+    });
 
     // Drag handle behaviour (drag by toolbar area)
     makeDraggable(PANEL, handle);
@@ -260,8 +277,7 @@
       el('span', 'cp-ins-label', hdr).textContent = 'INSPECTOR';
 
       // Quick-info displayed in header even when body is collapsed
-      const quick = el('div', 'cp-ins-quick', hdr, 'id=cp-ins-quick');
-      quick.style.display = 'none';
+      const quick = el('div', 'cp-ins-quick cp-ins-quick--idle', hdr, 'id=cp-ins-quick');
       el('span', 'cp-ins-qtag', quick, 'id=ph-tag');
       el('span', 'cp-ins-qsel', quick, 'id=ph-sel');
       el('span', 'cp-ins-qsize', quick, 'id=ph-size');
@@ -278,11 +294,6 @@
       const detail = el('div', '', wrap, 'id=cp-ins-detail');
       detail.style.display = 'none';
 
-      const posRow = el('div', 'cp-ins-pos', detail);
-      el('span', 'cp-ins-pos-label', posRow).textContent = 'Viewport';
-      const phPosEl = el('span', 'cp-ins-pos-val', posRow, 'id=ph-pos');
-      phPosEl.title = 'Border box top-left relative to the viewport (getBoundingClientRect.left / .top)';
-
       const body = el('div', 'cp-ins-body', detail);
       const bmPx = readInspectorBmPx();
       body.style.setProperty('--ins-bm-px', `${bmPx}px`);
@@ -290,7 +301,11 @@
       el('div', 'cp-bm', body, 'id=mt-panel-bm');
       const insGutter = el('div', 'cp-ins-gutter', body, 'id=cp-ins-gutter');
       insGutter.title = '拖曳調整 Box model / 屬性欄寬度';
-      el('div', 'cp-props', body, 'id=mt-panel-props');
+      const propsCol = el('div', 'cp-props', body, 'id=mt-panel-props');
+      const posRow = el('div', 'cp-ins-pos', propsCol);
+      el('span', 'cp-ins-pos-label', posRow).textContent = 'Viewport';
+      const phPosEl = el('span', 'cp-ins-pos-val', posRow, 'id=ph-pos');
+      phPosEl.title = 'Border box top-left relative to the viewport (getBoundingClientRect.left / .top)';
       wireInspectorSplit(body, insGutter);
 
       // Toggle collapse
@@ -301,57 +316,75 @@
       });
     }
 
-    // ── Shortcuts toggle ─────────────────────────────────────────────────────
-    const scToggle = el('div', 'cp-sc-toggle', PANEL);
-    const scChevron = el('span', 'cp-ins-chevron', null);
-    scChevron.innerHTML = IC.chevR;
-    scToggle.append(scChevron, document.createTextNode(' SHORTCUTS'));
+    const scBtn = iconBtn(IC.shortcuts, 'Shortcuts', S.shortcutsOpen, tailWrap);
+    scBtn.addEventListener('click', () => {
+      S.shortcutsOpen = !S.shortcutsOpen;
+      updatePanel();
+    });
+
     const scBody = el('div', 'cp-sc-body', PANEL);
-    scBody.style.display = 'none';
-    scToggle.addEventListener('click', () => {
-      const open = scBody.style.display !== 'none';
-      scBody.style.display = open ? 'none' : 'grid';
-      scChevron.innerHTML = open ? IC.chevR : IC.chevD;
+    scBody.style.display = S.shortcutsOpen ? 'flex' : 'none';
+
+    /** @type {{ title: string, rows: [string, string][] }[]} */
+    const scCommon = {
+      title: 'Common',
+      rows: [
+        ['Toggle tool',       'Ctrl+Shift+M'],
+        ['Show/hide panel',   'M'],
+        ['Inspector mode',    '1'],
+        ['Guides mode',       '2'],
+        ['Toggle px / rem',   'U'],
+        ['Deselect',          'Esc'],
+      ],
+    };
+    const scInspector = {
+      title: 'Inspector',
+      rows: [
+        ['Multi-select',      'Shift+Click'],
+        ['DOM parent / child', '↑ / ↓'],
+      ],
+    };
+    const scGuides = {
+      title: 'Guides',
+      rows: [
+        ['Add H guide',       'H'],
+        ['Add V guide',       'V'],
+        ['Toggle snap',       'S'],
+        ['Add guide (click)', 'Click'],
+        ['Clear guides',      'Q'],
+        ['Nudge guide 1px',   '← → ↑ ↓'],
+        ['Nudge guide 10px',  'Shift+arrows'],
+      ],
+    };
+    const scGroups = S.mode === MODE_GUIDES
+      ? [scCommon, scGuides]
+      : [scCommon, scInspector];
+    scGroups.forEach(({ title, rows }) => {
+      const grp = el('div', 'cp-sc-group', scBody);
+      el('div', 'cp-sc-group-title', grp).textContent = title;
+      const grid = el('div', 'cp-sc-group-rows', grp);
+      rows.forEach(([label, key]) => {
+        const r = el('div', 'cp-sc-row', grid);
+        el('span', 'cp-sc-label', r).textContent = label;
+        el('span', 'cp-kbd', r).textContent = key;
+      });
     });
 
-    const shortcuts = S.mode === MODE_GUIDES
-      ? [
-          ['Toggle tool',     'Ctrl+Shift+M'], ['Show/hide panel', 'M'],
-          ['Inspector',       '1'],            ['Guides mode',     '2'],
-          ['Add H guide',     'H'],            ['Add V guide',     'V'],
-          ['Toggle snap',     'S'],            ['Clear guides',    'Q'],
-          ['Toggle px/rem',   'U'],            ['Deselect',        'Esc'],
-          ['Multi-select',    'Shift+Click'],  ['DOM parent',      '↑'],
-          ['DOM child',       '↓'],            ['Nudge 1px',       '← →'],
-          ['Nudge 10px',      'Shift+←→'],
-        ]
-      : [
-          ['Toggle tool',     'Ctrl+Shift+M'], ['Show/hide panel', 'M'],
-          ['Inspector',       '1'],            ['Guides mode',     '2'],
-          ['Multi-select',    'Shift+Click'],  ['Deselect',        'Esc'],
-          ['DOM parent',      '↑'],            ['DOM child',       '↓'],
-          ['Nudge 1px',       '← →'],          ['Nudge 10px',      'Shift+←→'],
-          ['Toggle px/rem',   'U'],            ['Clear guides',    'Q'],
-        ];
-    shortcuts.forEach(([label, key]) => {
-      const r = el('div', 'cp-sc-row', scBody);
-      el('span', 'cp-sc-label', r).textContent = label;
-      el('span', 'cp-kbd', r).textContent = key;
-    });
-
-    // ── Panel footer (status) ─────────────────────────────────────────────────
-    el('div', 'cp-footer', PANEL, 'id=cp-footer');
   }
 
   function updatePanel() {
-    const insSection = ROOT && ROOT.querySelector('#mt-panel-inspector');
-    // Keep inspector section visibility, just rebuild toolbar/shortcuts
     buildControlPanel();
+    const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
+    if (inspected && inspected.isConnected && S.mode === MODE_INSPECTOR) {
+      showInspector(inspected);
+      showBoxModel(inspected);
+    }
   }
 
   function toggleUnit() {
     S.unit = S.unit === 'px' ? 'rem' : 'px';
     updatePanel();
+    updateStatusBar();
     const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
     if (inspected) showInspector(inspected);
     redraw();
@@ -359,10 +392,11 @@
 
   // ── Enable / Disable ──────────────────────────────────────────────────────
   function enable(onReady) {
-    chrome.storage.local.get([STORAGE_KEY, REM_ROOT_KEY], result => {
+    chrome.storage.local.get([STORAGE_KEY, REM_ROOT_KEY, THEME_KEY], result => {
       const v = result[STORAGE_KEY];
       S.inspectorBmPx = (Number.isFinite(v) && v >= INS_BM_MIN) ? v : 340;
       S.remRootPx = parseRemRootFromStorage(result[REM_ROOT_KEY]);
+      S.theme = result[THEME_KEY] === 'light' ? 'light' : 'dark';
       _enable();
       if (typeof onReady === 'function') onReady();
     });
@@ -438,6 +472,18 @@
     }
 
     if (S.mode === MODE_INSPECTOR) {
+      if (e.target.closest && e.target.closest('#mt-root')) {
+        if (S.hovered !== null) {
+          S.hovered = null;
+          updateHighlights();
+        }
+        if (S.selected.length === 1 && S.selected[0] && S.selected[0].isConnected) {
+          showInspector(S.selected[0]);
+          showBoxModel(S.selected[0]);
+        }
+        redraw();
+        return;
+      }
       const vw = document.documentElement.clientWidth;
       const vh = document.documentElement.clientHeight;
       if (e.clientX < 0 || e.clientY < 0 || e.clientX >= vw || e.clientY >= vh) {
@@ -554,12 +600,6 @@
   function onKeyDown(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
 
-    // Cmd/Ctrl+Shift+M → toggle
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'M') {
-      toggle();
-      e.preventDefault();
-      return;
-    }
     if (!S.enabled) return;
 
     switch (e.key) {
@@ -606,10 +646,12 @@
         }
         break;
       case 'q': case 'Q':
-        S.guides = [];
-        S.activeGuide = null;
-        redraw();
-        e.preventDefault();
+        if (S.mode === MODE_GUIDES) {
+          S.guides = [];
+          S.activeGuide = null;
+          redraw();
+          e.preventDefault();
+        }
         break;
       case 'Escape':
         S.selected = [];
@@ -628,8 +670,8 @@
   function handleArrowKey(e) {
     const step = e.shiftKey ? 10 : 1;
 
-    // If a guide is active, nudge it
-    if (S.activeGuide !== null) {
+    // In guides mode only: nudge the active guide
+    if (S.mode === MODE_GUIDES && S.activeGuide !== null) {
       const g = S.guides.find(g => g.id === S.activeGuide);
       if (g) {
         if (g.type === 'h' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
@@ -758,14 +800,17 @@
     const cls = typeof elem.className === 'string' && elem.className
       ? '.' + elem.className.trim().split(/\s+/).slice(0,2).join('.') : '';
 
-    ROOT.querySelector('#ph-tag').textContent  = `<${tag}>`;
-    ROOT.querySelector('#ph-sel').textContent  = `${id}${cls}`;
-    ROOT.querySelector('#ph-size').textContent = `${fmtU(Math.round(r.width))} × ${fmtU(Math.round(r.height))}`;
-    ROOT.querySelector('#ph-pos').textContent  = `${fmtU(Math.round(r.left))}, ${fmtU(Math.round(r.top))}`;
+    const phTag = ROOT.querySelector('#ph-tag');
+    const phSel = ROOT.querySelector('#ph-sel');
+    const phSize = ROOT.querySelector('#ph-size');
+    if (!phTag || !phSel || !phSize) return;
+    phTag.textContent = `<${tag}>`;
+    phSel.textContent = `${id}${cls}`;
+    phSize.textContent = `${fmtU(Math.round(r.width))} × ${fmtU(Math.round(r.height))}`;
 
     // Show quick-info in header (visible even when body is collapsed)
     const quick = ROOT.querySelector('#cp-ins-quick');
-    if (quick) quick.style.display = '';
+    if (quick) quick.classList.remove('cp-ins-quick--idle');
 
     // Reveal detail section, hide placeholder (first hover only)
     const placeholder = ROOT.querySelector('#cp-ins-placeholder');
@@ -775,7 +820,13 @@
 
     // ── CSS Properties column ──────────────────────────────────────────────
     const propsEl = ROOT.querySelector('#mt-panel-props');
+    if (!propsEl) return;
     propsEl.innerHTML = '';
+    const posRow = el('div', 'cp-ins-pos', propsEl);
+    el('span', 'cp-ins-pos-label', posRow).textContent = 'Viewport';
+    const phPosEl = el('span', 'cp-ins-pos-val', posRow, 'id=ph-pos');
+    phPosEl.title = 'Border box top-left relative to the viewport (getBoundingClientRect.left / .top)';
+    phPosEl.textContent = `${fmtU(Math.round(r.left))}, ${fmtU(Math.round(r.top))}`;
 
     const fontFamily = cs.fontFamily.split(',')[0].replace(/["']/g,'').trim();
     const display    = cs.display;
@@ -783,19 +834,26 @@
     if (display === 'flex') layout = `flex / ${cs.flexDirection}`;
     if (display === 'grid') layout = `grid`;
 
+    const bgRaw = (cs.backgroundColor || '').replace(/\s/g, '');
+    const bgTransparent =
+      !bgRaw ||
+      bgRaw === 'transparent' ||
+      bgRaw === 'rgba(0,0,0,0)';
+    const bgOpaque = !bgTransparent;
+
     const propGroups = [
-      { title: 'TYPOGRAPHY', rows: [
-        ['Font',     fontFamily],
-        ['Size',     fmtCssLen(cs.fontSize)],
-        ['Weight',   cs.fontWeight],
-        ['Color',    cs.color,            true],
-        ['Line-h',   fmtCssLen(cs.lineHeight)],
+      { title: 'Typography', rows: [
+        ['font-family', fontFamily],
+        ['font-size',   fmtCssLen(cs.fontSize)],
+        ['font-weight', cs.fontWeight],
+        ['color',       cs.color,            true],
+        ['line-height', fmtCssLen(cs.lineHeight)],
       ]},
-      { title: 'LAYOUT', rows: [
-        ['Display',  layout],
-        ['Position', cs.position],
-        ['Z-index',  cs.zIndex === 'auto' ? 'auto' : cs.zIndex],
-        ...(cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ? [['BG', cs.backgroundColor, true]] : []),
+      { title: 'Layout', rows: [
+        ['display',          layout],
+        ['position',         cs.position],
+        ['z-index',          cs.zIndex === 'auto' ? 'auto' : cs.zIndex],
+        ['background-color', bgOpaque ? cs.backgroundColor : 'transparent', bgOpaque],
       ]},
     ];
 
@@ -1621,16 +1679,12 @@
 
   // ── Status Bar ────────────────────────────────────────────────────────────
   function updateStatusBar() {
-    const footer = ROOT && ROOT.querySelector('#cp-footer');
-    if (!footer) return;
-    const mode = S.mode === MODE_INSPECTOR ? 'Inspector' : 'Guides';
-    const snap = (S.mode === MODE_GUIDES && S.snap) ? '<span class="sb-snap">Snap</span>' : '';
-    const sel  = S.selected.length ? `<span class="sb-sel">${S.selected.length} selected</span>` : '';
-    footer.innerHTML = `
-      <span class="sb-left">
-        <span class="sb-mode">${mode}</span>${snap}${sel}
-      </span>
-      <span class="sb-coords">${Math.round(S.mouseX)}, ${Math.round(S.mouseY)}</span>
+    const bar = ROOT && ROOT.querySelector('#cp-toolbar-status');
+    if (!bar) return;
+    const sel = S.selected.length ? `<span class="sb-sel">${S.selected.length} selected</span>` : '';
+    bar.innerHTML = `
+      <span class="sb-left">${sel}</span>
+      <span class="sb-coords">x: ${Math.round(S.mouseX)} y: ${Math.round(S.mouseY)}</span>
     `;
   }
 
@@ -1683,7 +1737,7 @@
     let ox, oy, startL, startT;
     handle.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
-      if (e.target.closest('input, textarea, select, .cp-btn, .cp-unit-btn, .cp-mode-pill, .cp-kbd, a, button')) return;
+      if (e.target.closest('input, textarea, select, .cp-btn, .cp-unit-btn, .cp-kbd, .cp-toolbar-status, a, button')) return;
       ox = e.clientX; oy = e.clientY;
       const r = panel.getBoundingClientRect();
       startL = r.left; startT = r.top;
@@ -1758,7 +1812,18 @@
     return '#' + [m[1],m[2],m[3]].map(n => (+n).toString(16).padStart(2,'0')).join('').toUpperCase();
   }
 
+  /** 關閉時仍要能用鍵盤開啟：不掛在 attachEvents，避免 disable 時被卸載 */
+  function onGlobalKeyToggle(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'M' || e.key === 'm')) {
+      toggle();
+      e.preventDefault();
+    }
+  }
+
   // ── Message Handler ───────────────────────────────────────────────────────
+  document.addEventListener('keydown', onGlobalKeyToggle, true);
+
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type === 'PING') {
       sendResponse({ ok: true });
