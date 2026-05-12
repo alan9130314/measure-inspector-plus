@@ -34,11 +34,21 @@
   --mt-label-gap-h-fg:   #fff0d4;
   --mt-label-gap-v-bg:   rgba(35, 95, 55, 0.9);
   --mt-label-gap-v-fg:   #d8f5dc;
-  --mt-label-guide-bg:   rgba(26, 115, 232, 0.22);
-  --mt-label-guide-fg:   #e8eaed;
+  /* Guides: opaque chips read on light or dark page content behind the overlay */
+  --mt-label-guide-bg:   rgba(18, 52, 110, 0.96);
+  --mt-label-guide-fg:   #ffffff;
+  --mt-label-guide-bd:   #1d5bd4;
 
-  --mt-guide-line:       rgba(26, 115, 232, 0.55);
-  --mt-guide-line-hover: rgba(26, 115, 232, 0.95);
+  --mt-guide-line:       rgba(26, 115, 232, 0.82);
+  --mt-guide-line-hover: rgba(47,  124, 255, 1);
+
+  /* Canvas pills: spacing between guides (drawMetricChip in guides flow) */
+  --mt-label-guide-metric-bg: rgba(110, 28, 22, 0.96);
+  --mt-label-guide-metric-fg: #fff8f6;
+
+  /* Guides mode snap crosshair (drawSnapCrosshair) */
+  --mt-guide-snap-line:     rgba(32, 170, 255, 0.92);
+  --mt-guide-snap-line-dim: rgba(32, 170, 255, 0.52);
 
   /* Canvas box model overlay (JS reads --mt-ov-bm-*) */
   --mt-ov-bm-margin-fill:   rgba(246, 178, 107, 0.55);
@@ -58,14 +68,14 @@
   --mt-surface-2:    #1b2632;
   --mt-surface-3:    #1c2734;
   --mt-surface-hover:#223143;
-  --mt-statusbar-bg: #243041;
+  --mt-footer-bg:    #141d28;
 
   --mt-panel-border: #374151;
   --mt-panel-outer:  #5f6f84;
   --mt-sep:          #3b4553;
   --mt-border-ui:    #445164;
   --mt-border-hover: #536174;
-  --mt-statusbar-bd: #607087;
+  --mt-footer-bd:    #2a3748;
 
   --mt-text-bright:  #f0f6fc;
   --mt-text-primary: #cad3df;
@@ -143,7 +153,8 @@
 .mt-guide-label {
   position:fixed; z-index:2147483626;
   background:var(--mt-label-guide-bg); color:var(--mt-label-guide-fg);
-  border:1px solid var(--mt-hl-select-bd);
+  border:1px solid var(--mt-label-guide-bd);
+  box-shadow:0 1px 2px rgba(0, 0, 0, 0.35);
   font-size:10px; font-weight:700; font-family:var(--mt-mono);
   padding:1px 6px; border-radius:4px; pointer-events:none;
 }
@@ -156,16 +167,18 @@
 }
 
 /* ── Status bar ─────────────────────────────────────────────── */
-#mt-statusbar {
-  position:fixed; z-index:2147483660;
-  bottom:0; left:0; right:0; height:24px;
-  background:var(--mt-statusbar-bg); border-top:1px solid var(--mt-statusbar-bd);
-  display:none; align-items:center; padding:0 14px; gap:16px;
-  font-size:11px; color:var(--mt-text-coords);
+.cp-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:5px 10px; gap:8px;
+  background:var(--mt-footer-bg); border-top:1px solid var(--mt-footer-bd);
+  font-size:10px; font-family:var(--mt-mono); color:var(--mt-text-coords);
+  flex-shrink:0;
 }
-#mt-statusbar .sb-mode   { color:var(--mt-text-mode); font-weight:700; }
-#mt-statusbar .sb-coords { color:var(--mt-text-coords); font-family:var(--mt-mono); }
-#mt-statusbar .sb-hint   { margin-left:auto; color:var(--mt-text-hint); }
+.sb-left   { display:flex; align-items:center; gap:6px; }
+.sb-mode   { color:var(--mt-text-mode); font-weight:700; }
+.sb-snap   { color:var(--mt-devtools-accent); font-weight:600; }
+.sb-sel    { color:var(--mt-text-secondary); }
+.sb-coords { font-family:var(--mt-mono); color:var(--mt-text-coords); }
 
 /* ══════════════════════════════════════════════════════════════
    CONTROL PANEL
@@ -293,8 +306,8 @@
 }
 .cp-ins-pos-label {
   flex-shrink:0;
-  font-weight:700;
-  color:var(--mt-text-dim);
+  font-size:10px; font-weight:700; color:var(--mt-text-dim);
+  text-transform:uppercase; letter-spacing:.8px;
 }
 .cp-ins-pos-val {
   font-family:var(--mt-mono);
@@ -400,7 +413,7 @@
 .cp-prop-group { margin-bottom:8px; }
 .cp-prop-group:last-child { margin-bottom:0; }
 .cp-prop-title {
-  font-size:9px; font-weight:700; color:var(--mt-text-dim);
+  font-size:10px; font-weight:700; color:var(--mt-text-dim);
   text-transform:uppercase; letter-spacing:.8px; margin-bottom:4px;
 }
 .cp-prop-row {
@@ -423,7 +436,7 @@
 /* ── Shortcuts section ──────────────────────────────────────── */
 .cp-sc-toggle {
   display:flex; align-items:center; gap:6px;
-  padding:6px 10px 6px 8px; font-size:10px; font-weight:700;
+  padding:6px 10px 6px 8px; font-size:10px; font-weight:700; font-family:var(--mt-mono);
   color:var(--mt-text-secondary); text-transform:uppercase; letter-spacing:.8px;
   cursor:pointer;
   transition:background .12s, color .12s;

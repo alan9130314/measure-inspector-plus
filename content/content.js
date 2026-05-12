@@ -113,7 +113,7 @@
     CTX.fillText(text, mid, baselineY);
   }
 
-  let PANEL, MARQUEE, STATUSBAR;
+  let PANEL, MARQUEE;
   let distLabels = [];
 
   // ── Build UI ─────────────────────────────────────────────────────────────
@@ -124,7 +124,6 @@
       CANVAS    = ROOT.querySelector('#mt-canvas');
       PANEL     = ROOT.querySelector('#mt-panel');
       MARQUEE   = ROOT.querySelector('#mt-marquee');
-      STATUSBAR = ROOT.querySelector('#mt-statusbar');
       CTX = CANVAS.getContext('2d');
       return;
     }
@@ -134,10 +133,8 @@
     CANVAS  = el('canvas', null, OVERLAY, 'id=mt-canvas');
     CTX     = CANVAS.getContext('2d');
 
-    MARQUEE   = el('div', null, ROOT, 'id=mt-marquee');
-    STATUSBAR = el('div', null, ROOT, 'id=mt-statusbar');
-
-    PANEL = el('div', null, ROOT, 'id=mt-panel');
+    MARQUEE = el('div', null, ROOT, 'id=mt-marquee');
+    PANEL   = el('div', null, ROOT, 'id=mt-panel');
     buildControlPanel();
 
     document.documentElement.appendChild(ROOT);
@@ -260,7 +257,7 @@
       const hdr = el('div', 'cp-ins-hdr', insSection);
       const chevron = el('span', 'cp-ins-chevron', hdr);
       chevron.innerHTML = S.inspectorOpen ? IC.chevD : IC.chevR;
-      el('span', 'cp-ins-label', hdr).textContent = 'Inspector';
+      el('span', 'cp-ins-label', hdr).textContent = 'INSPECTOR';
 
       // Quick-info displayed in header even when body is collapsed
       const quick = el('div', 'cp-ins-quick', hdr, 'id=cp-ins-quick');
@@ -282,7 +279,7 @@
       detail.style.display = 'none';
 
       const posRow = el('div', 'cp-ins-pos', detail);
-      el('span', 'cp-ins-pos-label', posRow).textContent = 'Viewport (left, top)';
+      el('span', 'cp-ins-pos-label', posRow).textContent = 'Viewport';
       const phPosEl = el('span', 'cp-ins-pos-val', posRow, 'id=ph-pos');
       phPosEl.title = 'Border box top-left relative to the viewport (getBoundingClientRect.left / .top)';
 
@@ -308,7 +305,7 @@
     const scToggle = el('div', 'cp-sc-toggle', PANEL);
     const scChevron = el('span', 'cp-ins-chevron', null);
     scChevron.innerHTML = IC.chevR;
-    scToggle.append(scChevron, document.createTextNode(' Shortcuts'));
+    scToggle.append(scChevron, document.createTextNode(' SHORTCUTS'));
     const scBody = el('div', 'cp-sc-body', PANEL);
     scBody.style.display = 'none';
     scToggle.addEventListener('click', () => {
@@ -317,33 +314,33 @@
       scChevron.innerHTML = open ? IC.chevR : IC.chevD;
     });
 
-    const midShortcuts = S.mode === MODE_GUIDES
+    const shortcuts = S.mode === MODE_GUIDES
       ? [
+          ['Toggle tool',     'Ctrl+Shift+M'], ['Show/hide panel', 'M'],
+          ['Inspector',       '1'],            ['Guides mode',     '2'],
           ['Add H guide',     'H'],            ['Add V guide',     'V'],
-          ['Toggle snap',     'S'],            ['Toggle px/rem',   'U'],
-          ['Clear guides',    'Q'],          ['rem 換算基準',    'rem 模式 · 1rem='],
+          ['Toggle snap',     'S'],            ['Clear guides',    'Q'],
+          ['Toggle px/rem',   'U'],            ['Deselect',        'Esc'],
+          ['Multi-select',    'Shift+Click'],  ['DOM parent',      '↑'],
+          ['DOM child',       '↓'],            ['Nudge 1px',       '← →'],
+          ['Nudge 10px',      'Shift+←→'],
         ]
       : [
-          ['Toggle px/rem',   'U'],          ['rem 換算基準',    'rem 模式 · 1rem='],
-          ['Clear guides',    'Q'],          ['Deselect',        'Esc'],
+          ['Toggle tool',     'Ctrl+Shift+M'], ['Show/hide panel', 'M'],
+          ['Inspector',       '1'],            ['Guides mode',     '2'],
+          ['Multi-select',    'Shift+Click'],  ['Deselect',        'Esc'],
+          ['DOM parent',      '↑'],            ['DOM child',       '↓'],
+          ['Nudge 1px',       '← →'],          ['Nudge 10px',      'Shift+←→'],
+          ['Toggle px/rem',   'U'],            ['Clear guides',    'Q'],
         ];
-    const tailShortcuts = [
-      ['Multi-select',    'Shift+Click'],  ['DOM parent',      '↑'],
-      ['DOM child',       '↓'],            ['Nudge 1px',       '← →'],
-      ['Nudge 10px',      'Shift+←→'],
-    ];
-    const shortcuts = [
-      ['Toggle tool',     'Ctrl+Shift+M'], ['Inspector',       '1'],
-      ['Guides mode',     '2'],            ['Show/hide panel', 'M'],
-      ...midShortcuts,
-      ...(S.mode === MODE_GUIDES ? [['Deselect', 'Esc']] : []),
-      ...tailShortcuts,
-    ];
     shortcuts.forEach(([label, key]) => {
       const r = el('div', 'cp-sc-row', scBody);
       el('span', 'cp-sc-label', r).textContent = label;
       el('span', 'cp-kbd', r).textContent = key;
     });
+
+    // ── Panel footer (status) ─────────────────────────────────────────────────
+    el('div', 'cp-footer', PANEL, 'id=cp-footer');
   }
 
   function updatePanel() {
@@ -375,7 +372,6 @@
     S.enabled = true;
     document.documentElement.style.userSelect = 'none';
     document.documentElement.style.webkitUserSelect = 'none';
-    STATUSBAR.style.display = 'flex';
     PANEL.style.display = 'flex';
     updateStatusBar();
     attachEvents();
@@ -393,9 +389,8 @@
     clearHighlights();
     clearDistLabels();
     clearGuideEls();
-    if (PANEL) PANEL.style.display = 'none';
-    if (STATUSBAR) STATUSBAR.style.display = 'none';
-    if (MARQUEE)   MARQUEE.style.display   = 'none';
+    if (PANEL)   PANEL.style.display   = 'none';
+    if (MARQUEE) MARQUEE.style.display = 'none';
     if (CTX) CTX.clearRect(0, 0, CANVAS.width / (window.devicePixelRatio || 1), CANVAS.height / (window.devicePixelRatio || 1));
   }
 
@@ -789,14 +784,14 @@
     if (display === 'grid') layout = `grid`;
 
     const propGroups = [
-      { title: 'Typography', rows: [
+      { title: 'TYPOGRAPHY', rows: [
         ['Font',     fontFamily],
         ['Size',     fmtCssLen(cs.fontSize)],
         ['Weight',   cs.fontWeight],
         ['Color',    cs.color,            true],
         ['Line-h',   fmtCssLen(cs.lineHeight)],
       ]},
-      { title: 'Layout', rows: [
+      { title: 'LAYOUT', rows: [
         ['Display',  layout],
         ['Position', cs.position],
         ['Z-index',  cs.zIndex === 'auto' ? 'auto' : cs.zIndex],
@@ -1283,15 +1278,20 @@
 
   // axis: 'v' = vertical line (label centered horizontally on line)
   //       'h' = horizontal line (label centered vertically on line)
-  function addDistLabel(dist, x, y, axis) {
+  /** @param {'distance'|'guide'} [chipKind] distance = inspector orange chips; guide = guide-spacing tokens */
+  function addDistLabel(dist, x, y, axis, chipKind = 'distance') {
     const vw  = document.documentElement.clientWidth;
     const vh  = document.documentElement.clientHeight;
     const PAD = 28; // keep label clear of viewport edges (accounts for ~half label size)
     const lx = Math.round(Math.max(PAD, Math.min(vw - PAD, x)));
     const ly = Math.round(Math.max(PAD, Math.min(vh - 30, y))); // 30 = status bar + margin
     const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
-    const bg = _p('--mt-label-orange-bg') || '#6a3f00';
-    const fg = _p('--mt-label-orange-fg') || '#ffe3b3';
+    const bg = chipKind === 'guide'
+      ? (_p('--mt-label-guide-metric-bg') || _p('--mt-label-orange-bg') || '#6a1a12')
+      : (_p('--mt-label-orange-bg') || '#6a3f00');
+    const fg = chipKind === 'guide'
+      ? (_p('--mt-label-guide-metric-fg') || _p('--mt-label-orange-fg') || '#fff8f6')
+      : (_p('--mt-label-orange-fg') || '#ffe3b3');
     drawMetricChip(lx, ly, fmtU(Math.round(dist)), bg, fg);
   }
 
@@ -1351,24 +1351,16 @@
     const hGuides = S.guides.filter(g => g.type === 'h').map(g => g.pos).sort((a,b)=>a-b);
     const vGuides = S.guides.filter(g => g.type === 'v').map(g => g.pos).sort((a,b)=>a-b);
 
-    CTX.save();
-    CTX.strokeStyle = 'rgba(231,76,60,.6)';
-    CTX.lineWidth = 1;
-    CTX.setLineDash([]);
-    CTX.fillStyle = 'rgba(231,76,60,.9)';
-
     for (let i = 0; i < hGuides.length - 1; i++) {
       const midX = document.documentElement.clientWidth / 2;
       const mid  = (hGuides[i] + hGuides[i+1]) / 2;
-      addDistLabel(Math.abs(hGuides[i+1] - hGuides[i]), midX, mid, 'v');
+      addDistLabel(Math.abs(hGuides[i+1] - hGuides[i]), midX, mid, 'v', 'guide');
     }
     for (let i = 0; i < vGuides.length - 1; i++) {
       const midY = document.documentElement.clientHeight / 2;
       const mid  = (vGuides[i] + vGuides[i+1]) / 2;
-      addDistLabel(Math.abs(vGuides[i+1] - vGuides[i]), mid, midY, 'h');
+      addDistLabel(Math.abs(vGuides[i+1] - vGuides[i]), mid, midY, 'h', 'guide');
     }
-
-    CTX.restore();
   }
 
   // ── Element edge extension lines ──────────────────────────────────────────
@@ -1596,11 +1588,14 @@
     const isHorizontal = S.moveDeltaY >= S.moveDeltaX;
     const x = S.snap ? (S.snapX ?? S.mouseX) : S.mouseX;
     const y = S.snap ? (S.snapY ?? S.mouseY) : S.mouseY;
+    const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
+    const lineStrong = _p('--mt-guide-snap-line') || 'rgba(32,170,255,0.92)';
+    const lineDim    = _p('--mt-guide-snap-line-dim') || 'rgba(32,170,255,0.52)';
     CTX.save();
-    CTX.strokeStyle = 'rgba(24,160,251,.6)';
     CTX.lineWidth = 1;
 
     // 即將新增的方向 → 實線
+    CTX.strokeStyle = lineStrong;
     CTX.setLineDash([]);
     CTX.beginPath();
     if (isHorizontal) {
@@ -1612,7 +1607,7 @@
 
     // 另一方向 → 虛線
     CTX.setLineDash([4, 4]);
-    CTX.strokeStyle = 'rgba(24,160,251,.3)';
+    CTX.strokeStyle = lineDim;
     CTX.beginPath();
     if (isHorizontal) {
       CTX.moveTo(x, 0); CTX.lineTo(x, CANVAS.height);
@@ -1626,18 +1621,16 @@
 
   // ── Status Bar ────────────────────────────────────────────────────────────
   function updateStatusBar() {
-    if (!STATUSBAR) return;
+    const footer = ROOT && ROOT.querySelector('#cp-footer');
+    if (!footer) return;
     const mode = S.mode === MODE_INSPECTOR ? 'Inspector' : 'Guides';
-    const snap = (S.mode === MODE_GUIDES && S.snap) ? ' · Snap ON' : '';
-    const sel  = S.selected.length ? ` · ${S.selected.length} selected` : '';
-    const sbHint = S.mode === MODE_GUIDES
-      ? '1/2=mode · M=panel · H/V=guide · S=snap · U=unit · Q=clear · Esc=deselect · ↑↓=DOM'
-      : '1/2=mode · M=panel · U=unit · Q=clear · Esc=deselect · ↑↓=DOM';
-    STATUSBAR.innerHTML = `
-      <span class="sb-mode">${mode}${snap}</span>
-      ${sel ? `<span>${sel}</span>` : ''}
+    const snap = (S.mode === MODE_GUIDES && S.snap) ? '<span class="sb-snap">Snap</span>' : '';
+    const sel  = S.selected.length ? `<span class="sb-sel">${S.selected.length} selected</span>` : '';
+    footer.innerHTML = `
+      <span class="sb-left">
+        <span class="sb-mode">${mode}</span>${snap}${sel}
+      </span>
       <span class="sb-coords">${Math.round(S.mouseX)}, ${Math.round(S.mouseY)}</span>
-      <span class="sb-hint">${sbHint}</span>
     `;
   }
 
