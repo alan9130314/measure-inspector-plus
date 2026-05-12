@@ -603,8 +603,8 @@
 
     ROOT.querySelector('#ph-tag').textContent  = `<${tag}>`;
     ROOT.querySelector('#ph-sel').textContent  = `${id}${cls}`;
-    ROOT.querySelector('#ph-size').textContent = `${Math.round(r.width)}×${Math.round(r.height)}`;
-    ROOT.querySelector('#ph-pos').textContent  = `${Math.round(r.left)}, ${Math.round(r.top)}`;
+    ROOT.querySelector('#ph-size').textContent = `${Math.round(r.width)} × ${Math.round(r.height)}`;
+    ROOT.querySelector('#ph-pos').textContent  = `${Math.round(r.left)}px, ${Math.round(r.top)}px`;
 
     // Show quick-info in header (visible even when body is collapsed)
     const quick = ROOT.querySelector('#cp-ins-quick');
@@ -692,7 +692,7 @@
                 <div class="bm-row"><span class="bm-zone-label">padding</span><span>${fmtPx(p.top)}</span></div>
                 <div class="bm-mid">
                   <span>${fmtPx(p.left)}</span>
-                  <div class="bm-layer bm-content">${cw}&thinsp;×&thinsp;${ch}</div>
+                  <div class="bm-layer bm-content">${cw} × ${ch}</div>
                   <span>${fmtPx(p.right)}</span>
                 </div>
                 <div class="bm-row"><span></span><span>${fmtPx(p.bottom)}</span></div>
@@ -808,7 +808,7 @@
 
     const drawLabel = (val, x, y, bgColor, textColor) => {
       if (Math.abs(val) < 0.5) return;
-      const text = String(Math.round(val));
+      const text = String(Math.round(val)) + 'px';
       const tw = CTX.measureText(text).width + 6;
       CTX.fillStyle = bgColor;
       CTX.beginPath();
