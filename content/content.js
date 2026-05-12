@@ -63,6 +63,43 @@
     ctx.lineTo(x + r, y + h); ctx.arcTo(x, y+h, x, y+h-r, r);
     ctx.lineTo(x, y + r); ctx.arcTo(x, y, x+r, y, r);
   }
+
+  const METRIC_CHIP_H = 16;
+  const METRIC_CHIP_RX = 4;
+  const METRIC_CHIP_PAD_X = 5;
+
+  /**
+   * Rounded metric pill on canvas (box-model + distance labels share this path
+   * so text does not drift vs DOM rendering).
+   */
+  function drawMetricChip(cx, cy, text, bgColor, fgColor, chipH = METRIC_CHIP_H, padX = METRIC_CHIP_PAD_X, rx = METRIC_CHIP_RX) {
+    if (!text) return;
+    const family = getComputedStyle(ROOT).getPropertyValue('--mt-mono').trim();
+    CTX.font = `bold 10px ${family}`;
+    CTX.textAlign = 'center';
+
+    const tw = Math.ceil(CTX.measureText(text).width + padX * 2);
+    const mid = Math.round(cx);
+    const top = Math.round(cy - chipH / 2);
+    const left = Math.round(mid - tw / 2);
+
+    CTX.fillStyle = bgColor;
+    CTX.beginPath();
+    ctxRoundRect(CTX, left, top, tw, chipH, rx);
+    CTX.fill();
+
+    const m = CTX.measureText(text);
+    let ascent = m.actualBoundingBoxAscent;
+    let descent = m.actualBoundingBoxDescent;
+    if (!(ascent > 0) || !Number.isFinite(ascent)) ascent = 7;
+    if (!(descent > 0) || !Number.isFinite(descent)) descent = 3;
+    const baselineY = top + (chipH + ascent - descent) / 2;
+
+    CTX.textBaseline = 'alphabetic';
+    CTX.fillStyle = fgColor;
+    CTX.fillText(text, mid, baselineY);
+  }
+
   let PANEL, MARQUEE, STATUSBAR;
   let distLabels = [];
 
@@ -703,29 +740,29 @@
     bmEl.innerHTML = `
       <div class="bm-header">Box Model</div>
       <div class="bm-layer bm-margin">
-        <div class="bm-row"><span class="bm-zone-label">margin</span><span>${fmtPx(m.top)}</span></div>
+        <div class="bm-row"><span class="bm-zone-label">margin</span><span class="bm-val bm-val-m">${fmtPx(m.top)}</span></div>
         <div class="bm-mid">
-          <span>${fmtPx(m.left)}</span>
+          <span class="bm-val bm-val-m">${fmtPx(m.left)}</span>
           <div class="bm-layer bm-border">
-            <div class="bm-row"><span class="bm-zone-label">border</span><span>${fmtPx(b.top)}</span></div>
+            <div class="bm-row"><span class="bm-zone-label">border</span><span class="bm-val bm-val-b">${fmtPx(b.top)}</span></div>
             <div class="bm-mid">
-              <span>${fmtPx(b.left)}</span>
+              <span class="bm-val bm-val-b">${fmtPx(b.left)}</span>
               <div class="bm-layer bm-padding">
-                <div class="bm-row"><span class="bm-zone-label">padding</span><span>${fmtPx(p.top)}</span></div>
+                <div class="bm-row"><span class="bm-zone-label">padding</span><span class="bm-val bm-val-p">${fmtPx(p.top)}</span></div>
                 <div class="bm-mid">
-                  <span>${fmtPx(p.left)}</span>
-                  <div class="bm-layer bm-content">${cw} × ${ch}</div>
-                  <span>${fmtPx(p.right)}</span>
+                  <span class="bm-val bm-val-p">${fmtPx(p.left)}</span>
+                  <div class="bm-layer bm-content"><span class="bm-val bm-val-c">${cw} × ${ch}</span></div>
+                  <span class="bm-val bm-val-p">${fmtPx(p.right)}</span>
                 </div>
-                <div class="bm-row"><span></span><span>${fmtPx(p.bottom)}</span></div>
+                <div class="bm-row"><span></span><span class="bm-val bm-val-p">${fmtPx(p.bottom)}</span></div>
               </div>
-              <span>${fmtPx(b.right)}</span>
+              <span class="bm-val bm-val-b">${fmtPx(b.right)}</span>
             </div>
-            <div class="bm-row"><span></span><span>${fmtPx(b.bottom)}</span></div>
+            <div class="bm-row"><span></span><span class="bm-val bm-val-b">${fmtPx(b.bottom)}</span></div>
           </div>
-          <span>${fmtPx(m.right)}</span>
+          <span class="bm-val bm-val-m">${fmtPx(m.right)}</span>
         </div>
-        <div class="bm-row"><span></span><span>${fmtPx(m.bottom)}</span></div>
+        <div class="bm-row"><span></span><span class="bm-val bm-val-m">${fmtPx(m.bottom)}</span></div>
       </div>
     `;
   }
@@ -792,11 +829,17 @@
     const paddingBox = { l: r.left+bl,    t: r.top+bt,    r: r.right-br,    b: r.bottom-bb  };
     const contentBox = { l: r.left+bl+pl, t: r.top+bt+pt, r: r.right-br-pr, b: r.bottom-bb-pb };
 
-    // DevTools palette
-    const C_MARGIN  = 'rgba(255,159,26,0.3)';
-    const C_BORDER  = 'rgba(47,124,255,0.18)';
-    const C_PADDING = 'rgba(32,199,217,0.22)';
-    const C_CONTENT = 'rgba(124,92,255,0.28)';
+    const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
+    const C_MARGIN  = _p('--mt-bm-margin-fill');
+    const C_BORDER  = _p('--mt-bm-border-fill');
+    const C_PADDING = _p('--mt-bm-padding-fill');
+    const C_CONTENT = _p('--mt-bm-content-fill');
+    const L_M_BG    = _p('--mt-bm-margin-label-bg');
+    const L_M_FG    = _p('--mt-bm-margin-label-fg');
+    const L_P_BG    = _p('--mt-bm-padding-label-bg');
+    const L_P_FG    = _p('--mt-bm-padding-label-fg');
+    const L_C_BG    = _p('--mt-bm-content-label-bg');
+    const L_C_FG    = _p('--mt-bm-content-label-fg');
 
     CTX.save();
 
@@ -823,50 +866,33 @@
       CTX.fillRect(contentBox.l, contentBox.t, cw, ch);
     }
 
-    // ── Labels ─────────────────────────────────────────────────
-    CTX.font = 'bold 10px "SF Mono",Consolas,monospace';
-    CTX.textAlign = 'center';
-    CTX.textBaseline = 'middle';
-
+    // ── Labels (canvas only — same drawMetricChip as distance labels) ─────
     const drawLabel = (val, x, y, bgColor, textColor) => {
       if (Math.abs(val) < 0.5) return;
-      const text = fmtU(Math.round(val));
-      const tw = CTX.measureText(text).width + 6;
-      CTX.fillStyle = bgColor;
-      CTX.beginPath();
-      ctxRoundRect(CTX, x - tw/2, y - 8, tw, 16, 3);
-      CTX.fill();
-      CTX.fillStyle = textColor;
-      CTX.fillText(text, x, y);
+      drawMetricChip(x, y, fmtU(Math.round(val)), bgColor, textColor);
     };
 
     const midX = (borderBox.l + borderBox.r) / 2;
     const midY = (borderBox.t + borderBox.b) / 2;
 
     // Margin labels
-    if (mt > 0) drawLabel(mt, midX, marginBox.t + mt/2,  'rgba(130,78,0,.92)', '#ffe9c3');
-    if (mb > 0) drawLabel(mb, midX, borderBox.b + mb/2,  'rgba(130,78,0,.92)', '#ffe9c3');
-    if (ml > 0) drawLabel(ml, marginBox.l + ml/2, midY,  'rgba(130,78,0,.92)', '#ffe9c3');
-    if (mr > 0) drawLabel(mr, borderBox.r + mr/2, midY,  'rgba(130,78,0,.92)', '#ffe9c3');
+    if (mt > 0) drawLabel(mt, midX, marginBox.t + mt/2,  L_M_BG, L_M_FG);
+    if (mb > 0) drawLabel(mb, midX, borderBox.b + mb/2,  L_M_BG, L_M_FG);
+    if (ml > 0) drawLabel(ml, marginBox.l + ml/2, midY,  L_M_BG, L_M_FG);
+    if (mr > 0) drawLabel(mr, borderBox.r + mr/2, midY,  L_M_BG, L_M_FG);
 
     // Padding labels
     const pmx = (paddingBox.l + paddingBox.r) / 2;
     const pmy = (paddingBox.t + paddingBox.b) / 2;
-    if (pt > 0) drawLabel(pt, pmx, paddingBox.t + pt/2,  'rgba(0,95,106,.92)',  '#d8faff');
-    if (pb > 0) drawLabel(pb, pmx, contentBox.b + pb/2,  'rgba(0,95,106,.92)',  '#d8faff');
-    if (pl > 0) drawLabel(pl, paddingBox.l + pl/2, pmy,  'rgba(0,95,106,.92)',  '#d8faff');
-    if (pr > 0) drawLabel(pr, contentBox.r + pr/2, pmy,  'rgba(0,95,106,.92)',  '#d8faff');
+    if (pt > 0) drawLabel(pt, pmx, paddingBox.t + pt/2,  L_P_BG, L_P_FG);
+    if (pb > 0) drawLabel(pb, pmx, contentBox.b + pb/2,  L_P_BG, L_P_FG);
+    if (pl > 0) drawLabel(pl, paddingBox.l + pl/2, pmy,  L_P_BG, L_P_FG);
+    if (pr > 0) drawLabel(pr, contentBox.r + pr/2, pmy,  L_P_BG, L_P_FG);
 
-    // Content size label
+    // Content size label (slightly taller chip, horizontal padding 4+4 ≈ old +8)
     if (cw > 30 && ch > 16) {
       const label = `${fmtU(Math.round(cw))} × ${fmtU(Math.round(ch))}`;
-      const tw = CTX.measureText(label).width + 8;
-      CTX.fillStyle = 'rgba(30,70,120,.85)';
-      CTX.beginPath();
-      ctxRoundRect(CTX, contentBox.l + cw/2 - tw/2, contentBox.t + ch/2 - 9, tw, 18, 4);
-      CTX.fill();
-      CTX.fillStyle = '#cae8ff';
-      CTX.fillText(label, contentBox.l + cw/2, contentBox.t + ch/2);
+      drawMetricChip(contentBox.l + cw / 2, contentBox.t + ch / 2, label, L_C_BG, L_C_FG, 18, 4, 4);
     }
 
     CTX.restore();
@@ -1150,17 +1176,12 @@
     const vw  = document.documentElement.clientWidth;
     const vh  = document.documentElement.clientHeight;
     const PAD = 28; // keep label clear of viewport edges (accounts for ~half label size)
-    x = Math.max(PAD, Math.min(vw - PAD, x));
-    y = Math.max(PAD, Math.min(vh - 30, y)); // 30 = status bar + margin
-
-    const div = document.createElement('div');
-    div.className = 'mt-dist-label';
-    div.textContent = fmtU(Math.round(dist));
-    div.style.left = `${x}px`;
-    div.style.top  = `${y}px`;
-    div.style.transform = 'translate(-50%, -50%)';
-    ROOT.appendChild(div);
-    distLabels.push(div);
+    const lx = Math.round(Math.max(PAD, Math.min(vw - PAD, x)));
+    const ly = Math.round(Math.max(PAD, Math.min(vh - 30, y))); // 30 = status bar + margin
+    const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
+    const bg = _p('--mt-label-orange-bg') || '#6a3f00';
+    const fg = _p('--mt-label-orange-fg') || '#ffe3b3';
+    drawMetricChip(lx, ly, fmtU(Math.round(dist)), bg, fg);
   }
 
   // ── Guide rendering ───────────────────────────────────────────────────────
