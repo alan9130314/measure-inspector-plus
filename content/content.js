@@ -12,6 +12,7 @@
     enabled:       false,
     mode:          MODE_INSPECTOR,
     snap:          true,
+    unit:          'px',
     inspectorOpen: false,
     selected:  [],       // pinned elements
     hovered:   null,
@@ -153,6 +154,12 @@
     const snapBtn = iconBtn(IC.snap, 'Snap  [S]', S.snap);
     snapBtn.addEventListener('click', () => { S.snap = !S.snap; updatePanel(); });
 
+    el('div', 'cp-sep', toolbar);
+    const unitBtn = el('div', 'cp-btn cp-unit-btn', toolbar);
+    unitBtn.textContent = S.unit;
+    unitBtn.title = 'Toggle units  [U]';
+    unitBtn.addEventListener('click', toggleUnit);
+
     if (S.mode === MODE_GUIDES) {
       el('div', 'cp-sep', toolbar);
       const addH = iconBtn(IC.hguide, 'Add H-Guide  [H]', false);
@@ -230,7 +237,8 @@
       ['Toggle tool',     'Ctrl+Shift+M'], ['Inspector',       '1'],
       ['Guides mode',     '2'],            ['Show/hide panel', 'M'],
       ['Add H guide',     'H'],            ['Add V guide',     'V'],
-      ['Toggle snap',     'S'],            ['Clear guides',    'Q'],
+      ['Toggle snap',     'S'],            ['Toggle px/rem',   'U'],
+      ['Clear guides',    'Q'],
       ['Deselect',        'Esc'],          ['Multi-select',    'Shift+Click'],
       ['DOM parent',      '↑'],            ['DOM child',       '↓'],
       ['Nudge 1px',       '← →'],          ['Nudge 10px',      'Shift+←→'],
@@ -246,6 +254,14 @@
     const insSection = ROOT && ROOT.querySelector('#mt-panel-inspector');
     // Keep inspector section visibility, just rebuild toolbar/shortcuts
     buildControlPanel();
+  }
+
+  function toggleUnit() {
+    S.unit = S.unit === 'px' ? 'rem' : 'px';
+    updatePanel();
+    const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
+    if (inspected) showInspector(inspected);
+    redraw();
   }
 
   // ── Enable / Disable ──────────────────────────────────────────────────────
@@ -464,6 +480,12 @@
           e.preventDefault();
         }
         break;
+      case 'u': case 'U':
+        if (!e.ctrlKey && !e.metaKey) {
+          toggleUnit();
+          e.preventDefault();
+        }
+        break;
       case 'q': case 'Q':
         S.guides = [];
         S.activeGuide = null;
@@ -582,7 +604,7 @@
 
     const badge = document.createElement('div');
     badge.className = `mt-size-badge mt-size-badge-${type}`;
-    badge.textContent = `${Math.round(r.width)} × ${Math.round(r.height)}`;
+    badge.textContent = `${fmtU(Math.round(r.width))} × ${fmtU(Math.round(r.height))}`;
     const bt = r.top < 22 ? r.bottom + 2 : r.top - 20;
     badge.style.cssText = `left:${r.left}px;top:${bt}px;`;
 
@@ -603,8 +625,8 @@
 
     ROOT.querySelector('#ph-tag').textContent  = `<${tag}>`;
     ROOT.querySelector('#ph-sel').textContent  = `${id}${cls}`;
-    ROOT.querySelector('#ph-size').textContent = `${Math.round(r.width)} × ${Math.round(r.height)}`;
-    ROOT.querySelector('#ph-pos').textContent  = `${Math.round(r.left)}px, ${Math.round(r.top)}px`;
+    ROOT.querySelector('#ph-size').textContent = `${fmtU(Math.round(r.width))} × ${fmtU(Math.round(r.height))}`;
+    ROOT.querySelector('#ph-pos').textContent  = `${fmtU(Math.round(r.left))}, ${fmtU(Math.round(r.top))}`;
 
     // Show quick-info in header (visible even when body is collapsed)
     const quick = ROOT.querySelector('#cp-ins-quick');
@@ -629,10 +651,10 @@
     const propGroups = [
       { title: 'Typography', rows: [
         ['Font',     fontFamily],
-        ['Size',     cs.fontSize],
+        ['Size',     fmtCssLen(cs.fontSize)],
         ['Weight',   cs.fontWeight],
         ['Color',    cs.color,            true],
-        ['Line-h',   cs.lineHeight],
+        ['Line-h',   fmtCssLen(cs.lineHeight)],
       ]},
       { title: 'Layout', rows: [
         ['Display',  layout],
@@ -808,7 +830,7 @@
 
     const drawLabel = (val, x, y, bgColor, textColor) => {
       if (Math.abs(val) < 0.5) return;
-      const text = String(Math.round(val)) + 'px';
+      const text = fmtU(Math.round(val));
       const tw = CTX.measureText(text).width + 6;
       CTX.fillStyle = bgColor;
       CTX.beginPath();
@@ -837,7 +859,7 @@
 
     // Content size label
     if (cw > 30 && ch > 16) {
-      const label = `${Math.round(cw)} × ${Math.round(ch)}`;
+      const label = `${fmtU(Math.round(cw))} × ${fmtU(Math.round(ch))}`;
       const tw = CTX.measureText(label).width + 8;
       CTX.fillStyle = 'rgba(30,70,120,.85)';
       CTX.beginPath();
@@ -1133,7 +1155,7 @@
 
     const div = document.createElement('div');
     div.className = 'mt-dist-label';
-    div.textContent = `${Math.round(dist)}px`;
+    div.textContent = fmtU(Math.round(dist));
     div.style.left = `${x}px`;
     div.style.top  = `${y}px`;
     div.style.transform = 'translate(-50%, -50%)';
@@ -1182,7 +1204,7 @@
       // Label
       const label = document.createElement('div');
       label.className = 'mt-guide-label';
-      label.textContent = `${Math.round(g.pos)}px`;
+      label.textContent = fmtU(Math.round(g.pos));
       if (g.type === 'h') label.style.cssText = `left:4px;top:${g.pos - 16}px;`;
       else                label.style.cssText = `left:${g.pos + 4}px;top:4px;`;
       ROOT.appendChild(label);
@@ -1223,9 +1245,9 @@
     const vw = document.documentElement.clientWidth;
     const vh = document.documentElement.clientHeight;
     CTX.save();
-    CTX.strokeStyle = 'rgba(248,81,73,.4)';
-    CTX.lineWidth = 0.75;
-    CTX.setLineDash([5, 5]);
+    CTX.strokeStyle = 'rgba(248,81,73,.75)';
+    CTX.lineWidth = 1;
+    CTX.setLineDash([5, 4]);
     CTX.beginPath();
     CTX.moveTo(0, r.top);    CTX.lineTo(vw, r.top);
     CTX.moveTo(0, r.bottom); CTX.lineTo(vw, r.bottom);
@@ -1412,7 +1434,7 @@
   function addGapLabel(size, x1, y1, x2, y2, axis, vw, vh) {
     const div = document.createElement('div');
     div.className = axis === 'h' ? 'mt-gap-label mt-gap-label-h' : 'mt-gap-label mt-gap-label-v';
-    div.textContent = `${size}px`;
+    div.textContent = fmtU(size);
 
     if (axis === 'h') {
       // Column gap: centred horizontally in the strip, anchored to the top edge
@@ -1527,7 +1549,19 @@
   }
 
   function roundPx(val) { return Math.round(parseFloat(val) || 0); }
-  function fmtPx(n)     { return n === 0 ? '0' : `${n}px`; }
+  function rootFontSize() { return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; }
+  function fmtU(n) {
+    if (n === 0) return '0';
+    if (S.unit === 'rem') { const v = n / rootFontSize(); return parseFloat(v.toFixed(3)) + 'rem'; }
+    return n + 'px';
+  }
+  function fmtCssLen(val) {
+    if (!val || val === 'normal') return val;
+    const n = parseFloat(val);
+    if (isNaN(n) || !String(val).trimEnd().endsWith('px')) return val;
+    return fmtU(n);
+  }
+  function fmtPx(n) { return fmtU(n); }
 
   function overlapH(a, b) { return a.left < b.right && a.right > b.left; }
   function overlapV(a, b) { return a.top  < b.bottom && a.bottom > b.top; }
