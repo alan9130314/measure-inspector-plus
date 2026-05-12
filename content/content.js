@@ -7,6 +7,12 @@
   const MODE_INSPECTOR = 'inspector';
   const MODE_GUIDES    = 'guides';
 
+  const STORAGE_KEY    = 'inspectorBmPx';
+  const REM_ROOT_KEY   = 'remRootPx';
+  const INS_GUTTER     = 5;
+  const INS_BM_MIN     = 200;
+  const INS_PROPS_MIN  = 160;
+
   // ── State ────────────────────────────────────────────────────────────────
   const S = {
     enabled:       false,
@@ -31,6 +37,13 @@
     moveDeltaY: 0,
     // inspector panel drag
     panelDrag: null,
+    /** @type {{ startX:number, startBm:number }|null} */
+    inspectorSplit: null,
+    inspectorBmPx:  null,
+    /** 自訂 1rem 對應的 px（顯示換算用，預設 16） */
+    remRootPx:      16,
+    /** ↑ 往父層時 push 的節點；↓ 優先回到最近一次離開的子節點 */
+    domNavStack:    [],
   };
 
   // ── SVG Icon set ─────────────────────────────────────────────────────────
@@ -188,14 +201,39 @@
 
     el('div', 'cp-sep', toolbar);
 
-    const snapBtn = iconBtn(IC.snap, 'Snap  [S]', S.snap);
-    snapBtn.addEventListener('click', () => { S.snap = !S.snap; updatePanel(); });
+    if (S.mode === MODE_GUIDES) {
+      const snapBtn = iconBtn(IC.snap, 'Snap  [S]', S.snap);
+      snapBtn.addEventListener('click', () => { S.snap = !S.snap; updatePanel(); updateStatusBar(); });
+      el('div', 'cp-sep', toolbar);
+    }
 
-    el('div', 'cp-sep', toolbar);
     const unitBtn = el('div', 'cp-btn cp-unit-btn', toolbar);
     unitBtn.textContent = S.unit;
     unitBtn.title = 'Toggle units  [U]';
     unitBtn.addEventListener('click', toggleUnit);
+
+    const remRootWrap = el('div', 'cp-rem-root-wrap', toolbar);
+    remRootWrap.style.display = S.unit === 'rem' ? 'flex' : 'none';
+    el('span', 'cp-rem-root-label', remRootWrap).textContent = '1rem=';
+    const remInp = el('input', 'cp-rem-root-inp', remRootWrap, 'id=cp-rem-root-inp');
+    remInp.type = 'number';
+    remInp.min = '1';
+    remInp.max = '512';
+    remInp.step = 'any';
+    remInp.value = String(S.remRootPx);
+    remInp.title = '自訂 rem 換算基準（1rem 等於多少 px）';
+    const stopKeyBubble = e => e.stopPropagation();
+    remInp.addEventListener('keydown', stopKeyBubble);
+    remInp.addEventListener('keyup', stopKeyBubble);
+    remInp.addEventListener('change', () => {
+      const n = parseRemRootFromStorage(remInp.value);
+      remInp.value = String(n);
+      S.remRootPx = n;
+      try { chrome.storage.local.set({ [REM_ROOT_KEY]: n }); } catch (_) { /* ignore */ }
+      redraw();
+      const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
+      if (inspected) showInspector(inspected);
+    });
 
     if (S.mode === MODE_GUIDES) {
       el('div', 'cp-sep', toolbar);
@@ -209,7 +247,7 @@
 
     // Mode pill (right-aligned)
     const pill = el('div', 'cp-mode-pill', toolbar);
-    pill.innerHTML = `<b>${S.mode === MODE_INSPECTOR ? 'Inspector' : 'Guides'}</b>${S.snap ? ' · Snap' : ''}`;
+    pill.innerHTML = `<b>${S.mode === MODE_INSPECTOR ? 'Inspector' : 'Guides'}</b>${S.mode === MODE_GUIDES && S.snap ? ' · Snap' : ''}`;
 
     // Drag handle behaviour (drag by toolbar area)
     makeDraggable(PANEL, handle);
@@ -243,11 +281,20 @@
       const detail = el('div', '', wrap, 'id=cp-ins-detail');
       detail.style.display = 'none';
 
-      el('div', 'cp-ins-pos', detail, 'id=ph-pos');
+      const posRow = el('div', 'cp-ins-pos', detail);
+      el('span', 'cp-ins-pos-label', posRow).textContent = 'Viewport (left, top)';
+      const phPosEl = el('span', 'cp-ins-pos-val', posRow, 'id=ph-pos');
+      phPosEl.title = 'Border box top-left relative to the viewport (getBoundingClientRect.left / .top)';
 
       const body = el('div', 'cp-ins-body', detail);
+      const bmPx = readInspectorBmPx();
+      body.style.setProperty('--ins-bm-px', `${bmPx}px`);
+      S.inspectorBmPx = bmPx;
       el('div', 'cp-bm', body, 'id=mt-panel-bm');
+      const insGutter = el('div', 'cp-ins-gutter', body, 'id=cp-ins-gutter');
+      insGutter.title = '拖曳調整 Box model / 屬性欄寬度';
       el('div', 'cp-props', body, 'id=mt-panel-props');
+      wireInspectorSplit(body, insGutter);
 
       // Toggle collapse
       hdr.addEventListener('click', () => {
@@ -270,15 +317,27 @@
       scChevron.innerHTML = open ? IC.chevR : IC.chevD;
     });
 
+    const midShortcuts = S.mode === MODE_GUIDES
+      ? [
+          ['Add H guide',     'H'],            ['Add V guide',     'V'],
+          ['Toggle snap',     'S'],            ['Toggle px/rem',   'U'],
+          ['Clear guides',    'Q'],          ['rem 換算基準',    'rem 模式 · 1rem='],
+        ]
+      : [
+          ['Toggle px/rem',   'U'],          ['rem 換算基準',    'rem 模式 · 1rem='],
+          ['Clear guides',    'Q'],          ['Deselect',        'Esc'],
+        ];
+    const tailShortcuts = [
+      ['Multi-select',    'Shift+Click'],  ['DOM parent',      '↑'],
+      ['DOM child',       '↓'],            ['Nudge 1px',       '← →'],
+      ['Nudge 10px',      'Shift+←→'],
+    ];
     const shortcuts = [
       ['Toggle tool',     'Ctrl+Shift+M'], ['Inspector',       '1'],
       ['Guides mode',     '2'],            ['Show/hide panel', 'M'],
-      ['Add H guide',     'H'],            ['Add V guide',     'V'],
-      ['Toggle snap',     'S'],            ['Toggle px/rem',   'U'],
-      ['Clear guides',    'Q'],
-      ['Deselect',        'Esc'],          ['Multi-select',    'Shift+Click'],
-      ['DOM parent',      '↑'],            ['DOM child',       '↓'],
-      ['Nudge 1px',       '← →'],          ['Nudge 10px',      'Shift+←→'],
+      ...midShortcuts,
+      ...(S.mode === MODE_GUIDES ? [['Deselect', 'Esc']] : []),
+      ...tailShortcuts,
     ];
     shortcuts.forEach(([label, key]) => {
       const r = el('div', 'cp-sc-row', scBody);
@@ -302,7 +361,16 @@
   }
 
   // ── Enable / Disable ──────────────────────────────────────────────────────
-  function enable() {
+  function enable(onReady) {
+    chrome.storage.local.get([STORAGE_KEY, REM_ROOT_KEY], result => {
+      const v = result[STORAGE_KEY];
+      S.inspectorBmPx = (Number.isFinite(v) && v >= INS_BM_MIN) ? v : 340;
+      S.remRootPx = parseRemRootFromStorage(result[REM_ROOT_KEY]);
+      _enable();
+      if (typeof onReady === 'function') onReady();
+    });
+  }
+  function _enable() {
     buildUI();
     S.enabled = true;
     document.documentElement.style.userSelect = 'none';
@@ -320,6 +388,7 @@
     document.documentElement.style.webkitUserSelect = '';
     S.selected = [];
     S.hovered  = null;
+    clearDomNavStack();
     detachEvents();
     clearHighlights();
     clearDistLabels();
@@ -331,6 +400,10 @@
   }
 
   function toggle() { S.enabled ? disable() : enable(); }
+
+  function clearDomNavStack() {
+    S.domNavStack.length = 0;
+  }
 
   // ── Event Wiring ──────────────────────────────────────────────────────────
   function attachEvents() {
@@ -370,6 +443,16 @@
     }
 
     if (S.mode === MODE_INSPECTOR) {
+      const vw = document.documentElement.clientWidth;
+      const vh = document.documentElement.clientHeight;
+      if (e.clientX < 0 || e.clientY < 0 || e.clientX >= vw || e.clientY >= vh) {
+        if (S.hovered !== null) {
+          S.hovered = null;
+          updateHighlights();
+          redraw();
+        }
+        return;
+      }
       const el = pickEl(e.clientX, e.clientY);
       if (el !== S.hovered) {
         S.hovered = el;
@@ -408,6 +491,7 @@
           S.marqueeing = true;
           S.marqueeStart = { x: e.clientX, y: e.clientY };
           S.selected = [];
+          clearDomNavStack();
           updateHighlights();
           redraw();
           e.stopPropagation();
@@ -429,6 +513,7 @@
 
         if (x2 - x1 > 4 || y2 - y1 > 4) {
           S.selected = elementsInRect(x1, y1, x2, y2);
+          clearDomNavStack();
           updateHighlights();
           redraw();
         }
@@ -466,6 +551,7 @@
       }
       updateHighlights();
       redraw();
+      clearDomNavStack();
     }
   }
 
@@ -511,9 +597,10 @@
         }
         break;
       case 's': case 'S':
-        if (!e.ctrlKey && !e.metaKey) {
+        if (S.mode === MODE_GUIDES && !e.ctrlKey && !e.metaKey) {
           S.snap = !S.snap;
           updatePanel();
+          updateStatusBar();
           e.preventDefault();
         }
         break;
@@ -532,7 +619,8 @@
       case 'Escape':
         S.selected = [];
         S.activeGuide = null;
-        S.guides.forEach(g => g.selected = false);
+        S.guides.forEach(g => { g.selected = false; });
+        clearDomNavStack();
         updateHighlights();
         redraw();
         break;
@@ -565,6 +653,7 @@
       const cur = S.selected[0];
       if (e.key === 'ArrowUp' && cur.parentElement && cur.parentElement !== document.body) {
         if (!cur.parentElement.closest('#mt-root')) {
+          S.domNavStack.push(cur);
           S.selected = [cur.parentElement];
           updateHighlights();
           showInspector(cur.parentElement);
@@ -572,8 +661,22 @@
           redraw();
           e.preventDefault();
         }
-      } else if (e.key === 'ArrowDown' && cur.firstElementChild) {
-        if (!cur.firstElementChild.closest('#mt-root')) {
+      } else if (e.key === 'ArrowDown') {
+        while (S.domNavStack.length) {
+          const top = S.domNavStack[S.domNavStack.length - 1];
+          if (top && top.isConnected && top.parentElement === cur && !top.closest('#mt-root')) break;
+          S.domNavStack.pop();
+        }
+        if (S.domNavStack.length) {
+          const child = S.domNavStack.pop();
+          S.selected = [child];
+          updateHighlights();
+          showInspector(child);
+          showBoxModel(child);
+          redraw();
+          e.preventDefault();
+        } else if (cur.firstElementChild && !cur.firstElementChild.closest('#mt-root')) {
+          clearDomNavStack();
           S.selected = [cur.firstElementChild];
           updateHighlights();
           showInspector(cur.firstElementChild);
@@ -830,16 +933,16 @@
     const contentBox = { l: r.left+bl+pl, t: r.top+bt+pt, r: r.right-br-pr, b: r.bottom-bb-pb };
 
     const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
-    const C_MARGIN  = _p('--mt-bm-margin-fill');
-    const C_BORDER  = _p('--mt-bm-border-fill');
-    const C_PADDING = _p('--mt-bm-padding-fill');
-    const C_CONTENT = _p('--mt-bm-content-fill');
-    const L_M_BG    = _p('--mt-bm-margin-label-bg');
-    const L_M_FG    = _p('--mt-bm-margin-label-fg');
-    const L_P_BG    = _p('--mt-bm-padding-label-bg');
-    const L_P_FG    = _p('--mt-bm-padding-label-fg');
-    const L_C_BG    = _p('--mt-bm-content-label-bg');
-    const L_C_FG    = _p('--mt-bm-content-label-fg');
+    const C_MARGIN  = _p('--mt-ov-bm-margin-fill');
+    const C_BORDER  = _p('--mt-ov-bm-border-fill');
+    const C_PADDING = _p('--mt-ov-bm-padding-fill');
+    const C_CONTENT = _p('--mt-ov-bm-content-fill');
+    const L_M_BG    = _p('--mt-ov-bm-margin-label-bg');
+    const L_M_FG    = _p('--mt-ov-bm-margin-label-fg');
+    const L_P_BG    = _p('--mt-ov-bm-padding-label-bg');
+    const L_P_FG    = _p('--mt-ov-bm-padding-label-fg');
+    const L_C_BG    = _p('--mt-ov-bm-content-label-bg');
+    const L_C_FG    = _p('--mt-ov-bm-content-label-fg');
 
     CTX.save();
 
@@ -898,6 +1001,13 @@
     CTX.restore();
   }
 
+  /** client 是否在視窗內；移出視窗時不與 hover 做距離比對 */
+  function pointerInViewport(px = S.mouseX, py = S.mouseY) {
+    const w = document.documentElement.clientWidth;
+    const h = document.documentElement.clientHeight;
+    return px >= 0 && py >= 0 && px < w && py < h;
+  }
+
   function redraw() {
     if (!CTX) return;
     CTX.clearRect(0, 0, CANVAS.width / (window.devicePixelRatio || 1), CANVAS.height / (window.devicePixelRatio || 1));
@@ -914,7 +1024,7 @@
       }
       S.selected.forEach(el => drawBoxModelOverlay(el));
       drawDistances();
-      if (S.hovered && S.selected.length === 0) {
+      if (S.hovered && S.selected.length === 0 && pointerInViewport()) {
         drawLayoutGaps(S.hovered);
         drawBoxModelOverlay(S.hovered);
         drawNeighborDistances(S.hovered);
@@ -942,6 +1052,7 @@
   // Distance between selected and hovered
   function drawDistances() {
     if (!S.selected.length || !S.hovered) return;
+    if (!pointerInViewport()) return;
     if (S.selected.includes(S.hovered)) return;
 
     const hovR     = S.hovered.getBoundingClientRect();
@@ -1307,15 +1418,19 @@
 
   // ── Hatch pattern for gap fills ──────────────────────────────────────────
   function makeHatchPattern(lineColor) {
-    const sz  = 7;
+    const sz = 5;
     const off = document.createElement('canvas');
-    off.width = sz; off.height = sz;
-    const c   = off.getContext('2d');
+    off.width = sz;
+    off.height = sz;
+    const c = off.getContext('2d');
     c.strokeStyle = lineColor;
-    c.lineWidth   = 1;
+    c.lineWidth = 1.35;
+    c.lineCap = 'square';
     c.beginPath();
-    c.moveTo(-1, sz);    c.lineTo(sz,    -1);     // main diagonal tile
-    c.moveTo(0,  sz * 2); c.lineTo(sz * 2, 0);   // seamless right/bottom wrap
+    c.moveTo(-0.5, sz + 0.5);
+    c.lineTo(sz + 0.5, -0.5);
+    c.moveTo(-0.5, -0.5);
+    c.lineTo(sz + 0.5, sz + 0.5);
     c.stroke();
     return CTX.createPattern(off, 'repeat');
   }
@@ -1424,20 +1539,20 @@
 
     if (!gaps.length) return;
 
-    const hatchH = makeHatchPattern('rgba(255,159,26,.65)');
-    const hatchV = makeHatchPattern('rgba(32,199,217,.60)');
+    const hatchH = makeHatchPattern('rgba(255, 170, 72, 0.92)');
+    const hatchV = makeHatchPattern('rgba(72, 220, 232, 0.9)');
 
     CTX.save();
-    CTX.lineWidth = 0.5;
+    CTX.lineWidth = 1;
     CTX.setLineDash([]);
     gaps.forEach(({ x1, y1, x2, y2, axis }) => {
       const w = x2 - x1, h = y2 - y1;
       if (axis === 'h') {
         CTX.fillStyle   = hatchH;
-        CTX.strokeStyle = 'rgba(255,159,26,.55)';
+        CTX.strokeStyle = 'rgba(255, 140, 40, 0.95)';
       } else {
         CTX.fillStyle   = hatchV;
-        CTX.strokeStyle = 'rgba(32,199,217,.5)';
+        CTX.strokeStyle = 'rgba(40, 210, 225, 0.95)';
       }
       CTX.fillRect(x1, y1, w, h);
       CTX.strokeRect(x1, y1, w, h);
@@ -1513,20 +1628,69 @@
   function updateStatusBar() {
     if (!STATUSBAR) return;
     const mode = S.mode === MODE_INSPECTOR ? 'Inspector' : 'Guides';
-    const snap = S.snap ? ' · Snap ON' : '';
+    const snap = (S.mode === MODE_GUIDES && S.snap) ? ' · Snap ON' : '';
     const sel  = S.selected.length ? ` · ${S.selected.length} selected` : '';
+    const sbHint = S.mode === MODE_GUIDES
+      ? '1/2=mode · M=panel · H/V=guide · S=snap · U=unit · Q=clear · Esc=deselect · ↑↓=DOM'
+      : '1/2=mode · M=panel · U=unit · Q=clear · Esc=deselect · ↑↓=DOM';
     STATUSBAR.innerHTML = `
       <span class="sb-mode">${mode}${snap}</span>
       ${sel ? `<span>${sel}</span>` : ''}
       <span class="sb-coords">${Math.round(S.mouseX)}, ${Math.round(S.mouseY)}</span>
-      <span class="sb-hint">1/2=mode · M=panel · H/V=guide · S=snap · Q=clear · Esc=deselect · ↑↓=DOM</span>
+      <span class="sb-hint">${sbHint}</span>
     `;
+  }
+
+  function readInspectorBmPx() {
+    const v = S.inspectorBmPx;
+    return (Number.isFinite(v) && v >= INS_BM_MIN) ? v : 340;
+  }
+  function writeInspectorBmPx(px) {
+    try { chrome.storage.local.set({ [STORAGE_KEY]: px }); } catch (_) { /* ignore */ }
+  }
+  function parseBmPxFromBody(body) {
+    const s = body.style.getPropertyValue('--ins-bm-px').trim();
+    const m = /^([\d.]+)px$/.exec(s);
+    return m ? Math.round(parseFloat(m[1])) : readInspectorBmPx();
+  }
+  /** Box model | props 分隔條拖曳 */
+  function wireInspectorSplit(body, gutter) {
+    const onMove = e => {
+      if (!S.inspectorSplit) return;
+      const bw = body.getBoundingClientRect().width;
+      const maxBm = bw - INS_GUTTER - INS_PROPS_MIN;
+      const next = Math.round(
+        Math.min(Math.max(INS_BM_MIN, S.inspectorSplit.startBm + e.clientX - S.inspectorSplit.startX), maxBm)
+      );
+      body.style.setProperty('--ins-bm-px', `${next}px`);
+      S.inspectorBmPx = next;
+    };
+    const onUp = () => {
+      if (S.inspectorSplit) writeInspectorBmPx(S.inspectorBmPx ?? parseBmPxFromBody(body));
+      S.inspectorSplit = null;
+      document.body.style.removeProperty('cursor');
+      document.removeEventListener('mousemove', onMove, true);
+      document.removeEventListener('mouseup', onUp, true);
+    };
+    gutter.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const startBm = parseBmPxFromBody(body);
+      S.inspectorBmPx = startBm;
+      S.inspectorSplit = { startX: e.clientX, startBm };
+      document.body.style.cursor = 'col-resize';
+      document.addEventListener('mousemove', onMove, true);
+      document.addEventListener('mouseup', onUp, true);
+    });
   }
 
   // ── Draggable panels ──────────────────────────────────────────────────────
   function makeDraggable(panel, handle) {
     let ox, oy, startL, startT;
     handle.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (e.target.closest('input, textarea, select, .cp-btn, .cp-unit-btn, .cp-mode-pill, .cp-kbd, a, button')) return;
       ox = e.clientX; oy = e.clientY;
       const r = panel.getBoundingClientRect();
       startL = r.left; startT = r.top;
@@ -1570,7 +1734,14 @@
   }
 
   function roundPx(val) { return Math.round(parseFloat(val) || 0); }
-  function rootFontSize() { return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; }
+  function parseRemRootFromStorage(raw) {
+    const n = typeof raw === 'number' ? raw : parseFloat(raw);
+    if (!Number.isFinite(n)) return 16;
+    return Math.min(512, Math.max(1, n));
+  }
+  function rootFontSize() {
+    return S.remRootPx > 0 ? S.remRootPx : (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
+  }
   function fmtU(n) {
     if (n === 0) return '0';
     if (S.unit === 'rem') { const v = n / rootFontSize(); return parseFloat(v.toFixed(3)) + 'rem'; }
@@ -1598,13 +1769,20 @@
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type === 'PING') {
       sendResponse({ ok: true });
-    } else if (msg.type === 'TOGGLE') {
-      toggle();
-      sendResponse({ enabled: S.enabled });
-    } else if (msg.type === 'GET_ENABLED') {
+      return;
+    }
+    if (msg.type === 'TOGGLE') {
+      if (S.enabled) {
+        disable();
+        sendResponse({ enabled: false });
+        return;
+      }
+      enable(() => sendResponse({ enabled: true }));
+      return true;
+    }
+    if (msg.type === 'GET_ENABLED') {
       sendResponse({ enabled: S.enabled });
     }
-    return true;
   });
 
 })();
