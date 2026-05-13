@@ -6,7 +6,7 @@ const tabState = new Map();
 
 function setIcon(tabId, enabled) {
   chrome.action.setIcon({ tabId, path: enabled ? ICON_ACTIVE : ICON_DEFAULT });
-  chrome.action.setTitle({ tabId, title: enabled ? 'MeasureTool (啟動中)' : 'MeasureTool (點擊開關)' });
+  chrome.action.setTitle({ tabId, title: enabled ? 'MeasureTool (Active)' : 'MeasureTool (Click to toggle)' });
 }
 
 chrome.action.onClicked.addListener(async (tab) => {

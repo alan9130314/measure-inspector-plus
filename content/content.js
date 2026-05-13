@@ -267,7 +267,7 @@
     remInp.max = '512';
     remInp.step = 'any';
     remInp.value = String(S.remRootPx);
-    remInp.title = '自訂 rem 換算基準（1rem 等於多少 px）';
+    remInp.title = 'Custom rem base (px per 1rem)';
     const stopKeyBubble = e => e.stopPropagation();
     remInp.addEventListener('keydown', stopKeyBubble);
     remInp.addEventListener('keyup', stopKeyBubble);
@@ -352,7 +352,7 @@
       S.inspectorBmPx = bmPx;
       el('div', 'cp-bm', body, 'id=mt-panel-bm');
       const insGutter = el('div', 'cp-ins-gutter', body, 'id=cp-ins-gutter');
-      insGutter.title = '拖曳調整 Box model / 屬性欄寬度';
+      insGutter.title = 'Drag to resize box model / properties columns';
       const propsCol = el('div', 'cp-props', body, 'id=mt-panel-props');
       const posRow = el('div', 'cp-ins-pos', propsCol);
       el('span', 'cp-ins-pos-label', posRow).textContent = 'Viewport';

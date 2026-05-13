@@ -41,14 +41,14 @@ async function init() {
 
   // Can't inject into chrome:// or extension pages
   if (!tab.url || tab.url.startsWith('chrome') || tab.url.startsWith('about')) {
-    setStatus('無法在此頁面使用', '#ff6584');
+    setStatus('Cannot be used on this page', '#ff6584');
     toggle.disabled = true;
     return;
   }
 
   const ok = await injectIfNeeded(tab.id);
   if (!ok) {
-    setStatus('請重新整理頁面後再試', '#ff6584');
+    setStatus('Please refresh the page and try again', '#ff6584');
     toggle.disabled = true;
     return;
   }
@@ -56,7 +56,7 @@ async function init() {
   chrome.tabs.sendMessage(tab.id, { type: 'GET_ENABLED' }, (res) => {
     if (chrome.runtime.lastError) return;
     toggle.checked = res?.enabled ?? false;
-    setStatus(toggle.checked ? '測量工具已啟用' : '點擊開關以啟用', toggle.checked ? '#4facfe' : '#888');
+    setStatus(toggle.checked ? 'Tool enabled' : 'Click to enable', toggle.checked ? '#4facfe' : '#888');
   });
 }
 
@@ -65,7 +65,7 @@ toggle.addEventListener('change', async () => {
   if (!tab) return;
   chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE' }, (res) => {
     if (chrome.runtime.lastError) return;
-    setStatus(res?.enabled ? '測量工具已啟用' : '已關閉', res?.enabled ? '#4facfe' : '#888');
+    setStatus(res?.enabled ? 'Tool enabled' : 'Disabled', res?.enabled ? '#4facfe' : '#888');
   });
 });
 

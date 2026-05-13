@@ -14,7 +14,7 @@
       "16": "icons/icon16.png",
       "48": "icons/icon48.png"
     },
-    "default_title": "MeasureTool (點擊開關)"
+    "default_title": "MeasureTool (Click to toggle)"
   },
   "content_scripts": [
     {
