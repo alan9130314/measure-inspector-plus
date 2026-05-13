@@ -4,7 +4,8 @@
       "Bash(convert --version)",
       "Bash(node gen-icons.js)",
       "Skill(update-config)",
-      "Skill(update-config:*)"
+      "Skill(update-config:*)",
+      "Bash(grep \"innerHTML\\\\|template\\\\|\\\\`\")"
     ]
   }
 }
