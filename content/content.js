@@ -44,7 +44,7 @@
     /** 自訂 1rem 對應的 px（顯示換算用，預設 16） */
     remRootPx:      16,
     /** `dark` | `light` — 面板與標籤配色 */
-    theme:          'dark',
+    theme:          'light',
     shortcutsOpen:  false,
     /** ↑ 往父層時 push 的節點；↓ 優先回到最近一次離開的子節點 */
     domNavStack:    [],
@@ -262,6 +262,7 @@
     if (S.mode === MODE_GUIDES) {
       const guidesSection = el('div', 'cp-guides-tools', PANEL);
       const guidesHead = el('div', 'cp-guides-tools-head', guidesSection);
+      el('span', 'cp-guides-label', guidesHead).textContent = 'GUIDES';
       const guidesBtns = el('div', 'cp-guides-tools-actions', guidesHead);
 
       const snapBtn = iconBtn(IC.snap, 'Snap  [S]', S.snap, guidesBtns);
@@ -409,7 +410,7 @@
       const v = result[STORAGE_KEY];
       S.inspectorBmPx = (Number.isFinite(v) && v >= INS_BM_MIN) ? v : 340;
       S.remRootPx = parseRemRootFromStorage(result[REM_ROOT_KEY]);
-      S.theme = result[THEME_KEY] === 'light' ? 'light' : 'dark';
+      S.theme = result[THEME_KEY] === 'dark' ? 'dark' : 'light';
       _enable();
       if (typeof onReady === 'function') onReady();
     });
@@ -1748,7 +1749,7 @@
     let ox, oy, startL, startT;
     handle.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
-      if (e.target.closest('input, textarea, select, .cp-btn, .cp-unit-btn, .cp-kbd, .cp-toolbar-status, a, button')) return;
+      if (e.target.closest('input, textarea, select, .cp-btn, .cp-unit-btn, .cp-kbd, a, button')) return;
       ox = e.clientX; oy = e.clientY;
       const r = panel.getBoundingClientRect();
       startL = r.left; startT = r.top;

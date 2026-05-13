@@ -154,14 +154,14 @@
   --mt-guide-snap-line:     rgba(2, 132, 199, 0.88);
   --mt-guide-snap-line-dim: rgba(2, 132, 199, 0.45);
 
-  --mt-ov-bm-margin-fill:   rgba(234, 179, 8, 0.45);
+  --mt-ov-bm-margin-fill:   rgba(246, 178, 107, 0.55);
   --mt-ov-bm-border-fill:   rgba(250, 204, 21, 0.4);
-  --mt-ov-bm-padding-fill:  rgba(34, 197, 94, 0.42);
+  --mt-ov-bm-padding-fill:  rgba(147, 196, 125, 0.55);
   --mt-ov-bm-content-fill:  rgba(59, 130, 246, 0.45);
-  --mt-ov-bm-margin-label-bg:  rgba(146, 64, 14, 0.92);
-  --mt-ov-bm-margin-label-fg:  #fffbeb;
-  --mt-ov-bm-padding-label-bg: rgba(20, 83, 45, 0.9);
-  --mt-ov-bm-padding-label-fg: #ecfdf5;
+  --mt-ov-bm-margin-label-bg:  rgba(180, 100, 20, 0.9);
+  --mt-ov-bm-margin-label-fg:  #fff8e1;
+  --mt-ov-bm-padding-label-bg: rgba(50, 120, 60, 0.9);
+  --mt-ov-bm-padding-label-fg: #d5f5d5;
   --mt-ov-bm-content-label-bg: rgba(30, 64, 175, 0.92);
   --mt-ov-bm-content-label-fg: #eff6ff;
   --mt-ov-bm-border-label-bg:  rgba(30, 58, 138, 0.92);
@@ -198,16 +198,16 @@
   --mt-panel-chip-bg:  #dbeafe;
   --mt-panel-chip-fg:  #1e3a8a;
 
-  --mt-bm-margin-bd:  rgba(194, 65, 12, 0.38);
+  --mt-bm-margin-bd:  rgba(255, 159, 26,  0.35);
   --mt-bm-border-bd:  rgba(29, 78, 216, 0.28);
-  --mt-bm-padding-bd: rgba(14, 116, 144, 0.32);
+  --mt-bm-padding-bd: rgba(32,  199, 217, 0.32);
   --mt-bm-content-bd: rgba(109, 40, 217, 0.32);
   --mt-bm-content-fg: #5b21b6;
 
-  --mt-bm-margin-label-bg: #9a3412;
-  --mt-bm-margin-label-fg: #fff7ed;
-  --mt-bm-padding-label-bg: rgba(6, 78, 59, 0.9);
-  --mt-bm-padding-label-fg: #ccfbf1;
+  --mt-bm-margin-label-bg: #9a5700;
+  --mt-bm-margin-label-fg: #fff8e8;
+  --mt-bm-padding-label-bg: #005b66;
+  --mt-bm-padding-label-fg: #f2feff;
   --mt-bm-border-label-bg:  rgba(30, 58, 138, 0.92);
   --mt-bm-border-label-fg:  #eff6ff;
   --mt-bm-content-label-bg: rgba(30, 64, 175, 0.92);
@@ -282,11 +282,11 @@
 
 /* ── Toolbar status (coords / selection) ───────────────────── */
 #mt-panel #cp-toolbar-status.cp-toolbar-status {
-  display:flex; align-items:center; justify-content:flex-start; gap:8px;
-  flex:1; min-width:0; margin:0 2px 0 6px; padding:0 4px;
+  display:flex; align-items:center; justify-content:flex-start; gap:var(--cp-row-gap);
+  flex:1; min-width:0; margin:0; padding:0 2px;
   font-size:10px; font-family:var(--mt-mono); color:var(--mt-text-coords);
 }
-.sb-left   { display:flex; align-items:center; gap:6px; min-height:1em; min-width:0; overflow:hidden; }
+.sb-left   { display:flex; align-items:center; gap:var(--cp-row-gap); min-height:1em; min-width:0; overflow:hidden; }
 .sb-sel    { color:var(--mt-text-secondary); }
 .sb-coords {
   margin-left:auto;
@@ -312,6 +312,11 @@
   flex-direction:column;
   /* 工具列 / inspector / guides 列統一最小高度，切模式不跳、也不會太扁 */
   --cp-row-min-h: 44px;
+  /* 橫列內距：toolbar / guides tools / inspector header 共用 */
+  --cp-row-pad-y: 4px;
+  --cp-row-pad-x-start: 8px;
+  --cp-row-pad-x-end: 10px;
+  --cp-row-gap: 6px;
 }
 
 /* ── Handle + Toolbar ───────────────────────────────────────── */
@@ -319,19 +324,19 @@
 .cp-toolbar {
   display:flex;
   align-items:center;
-  gap:1px;
+  gap:var(--cp-row-gap);
   min-height:var(--cp-row-min-h);
-  padding:4px 4px 4px 8px;
+  padding:var(--cp-row-pad-y) var(--cp-row-pad-x-end) var(--cp-row-pad-y) var(--cp-row-pad-x-start);
   width:100%;
   min-width:0;
 }
 .cp-toolbar-left { display:flex; align-items:center; gap:1px; flex-shrink:0; }
 .cp-toolbar-right {
-  display:flex; align-items:center; flex-shrink:0; margin-left:8px;
-  gap:6px;
+  display:flex; align-items:center; flex-shrink:0; margin-left:0;
+  gap:var(--cp-row-gap);
 }
 .cp-toolbar-tail {
-  display:flex; align-items:center; flex-shrink:0; gap:6px;
+  display:flex; align-items:center; flex-shrink:0; gap:var(--cp-row-gap);
 }
 .cp-btn {
   display:flex; align-items:center; justify-content:center;
@@ -406,16 +411,25 @@
   display:flex;
   align-items:center;
   justify-content:flex-start;
-  gap:6px;
+  gap:var(--cp-row-gap);
   min-height:var(--cp-row-min-h);
-  padding:4px 10px 4px 8px;
+  padding:var(--cp-row-pad-y) var(--cp-row-pad-x-end) var(--cp-row-pad-y) var(--cp-row-pad-x-start);
   background:var(--mt-surface-3);
   border-bottom:1px solid var(--mt-panel-border);
 }
 .cp-guides-tools-actions {
   display:flex;
   align-items:center;
-  gap:6px;
+  gap:var(--cp-row-gap);
+  margin-left:auto;
+}
+.cp-guides-label {
+  font-size:10px;
+  font-weight:700;
+  color:var(--mt-text-secondary);
+  text-transform:uppercase;
+  letter-spacing:.8px;
+  font-family:var(--mt-mono);
 }
 
 /* Inspector：標題/小標改為一般大小寫（覆寫 .cp-ins-label / .bm-header / .cp-prop-title 的 uppercase） */
@@ -431,12 +445,12 @@
 .cp-sc-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--cp-row-gap);
   flex-wrap: nowrap;
   min-width: 0;
   box-sizing: border-box;
   min-height: var(--cp-row-min-h);
-  padding: 4px 10px 4px 8px;
+  padding: var(--cp-row-pad-y) var(--cp-row-pad-x-end) var(--cp-row-pad-y) var(--cp-row-pad-x-start);
   background: var(--mt-surface-3);
   border-bottom: 1px solid var(--mt-panel-border);
   cursor: pointer;
