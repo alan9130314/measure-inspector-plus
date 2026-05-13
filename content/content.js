@@ -58,10 +58,9 @@
     snap:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2.5v3.2a4 4 0 0 0 8 0V2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 10.2v1.6M11 10.2v1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
     clear:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.5 4l.7 7.2h3.6L9.5 4M5.2 4V2.8h3.6V4" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.2 6.1v3.2M7.8 6.1v3.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
     shortcuts:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.6" y="2" width="10.8" height="9.4" rx="1.7" stroke="currentColor" stroke-width="1.2"/><path d="M3.3 4.7h1.3M5.4 4.7h1.3M7.5 4.7h1.3M9.6 4.7h1.3M3.3 6.8h1.3M5.4 6.8h1.3M7.5 6.8h1.3M9.6 6.8h1.3M3.3 8.9h3.9M8.1 8.9h2.8" stroke="currentColor" stroke-width="1.05" stroke-linecap="round"/></svg>`,
-    chevD:   `<svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.6 3.1l2.9 2.9 2.9-2.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    chevR:   `<svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M3.1 1.6L6 4.5 3.1 7.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     sun:     `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.4" stroke="currentColor" stroke-width="1.35"/><path d="M7 1.5v1.3M7 11.2v1.3M1.5 7h1.3M11.2 7h1.3M2.9 2.9l.9.9M10.2 10.2l.9.9M11.1 2.9l-.9.9M3.8 10.2l-.9.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
     moon:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.9 2.5a4.7 4.7 0 1 0 2.6 8.6 4.2 4.2 0 1 1-2.6-8.6z" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    panelHide: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2.5" width="10" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.35"/><path d="M4.2 11.25h5.6M7 9v2.25" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/><path d="M5.2 7.35L7 9.15l1.8-1.8" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   };
 
   // ── DOM refs ─────────────────────────────────────────────────────────────
@@ -88,7 +87,7 @@
   function drawMetricChip(cx, cy, text, bgColor, fgColor, chipH = METRIC_CHIP_H, padX = METRIC_CHIP_PAD_X, rx = METRIC_CHIP_RX) {
     if (!text) return;
     const family = getComputedStyle(ROOT).getPropertyValue('--mt-mono').trim();
-    CTX.font = `bold 10px ${family}`;
+    CTX.font = `500 10px ${family}`;
     CTX.textAlign = 'center';
 
     const tw = Math.ceil(CTX.measureText(text).width + padX * 2);
@@ -113,6 +112,31 @@
     CTX.fillText(text, mid, baselineY);
   }
 
+  /** Content-script CSS 裡 url() 會對到「頁面」網址，字型常載不到；改以擴充絕對路徑注入。 */
+  function ensureMeasureToolFonts() {
+    if (document.getElementById('mt-panel-font-faces')) return;
+    let sansUrl;
+    let monoUrl;
+    try {
+      sansUrl = chrome.runtime.getURL('fonts/inter-latin.woff2');
+      monoUrl = chrome.runtime.getURL('fonts/jetbrains-mono-latin.woff2');
+    } catch (_) {
+      return;
+    }
+    const st = document.createElement('style');
+    st.id = 'mt-panel-font-faces';
+    const esc = u => String(u).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    st.textContent = [
+      '@font-face{font-family:"MeasureTool Sans";font-style:normal;font-weight:400;font-display:swap;src:url("' + esc(sansUrl) + '") format("woff2");}',
+      '@font-face{font-family:"MeasureTool Sans";font-style:normal;font-weight:600;font-display:swap;src:url("' + esc(sansUrl) + '") format("woff2");}',
+      '@font-face{font-family:"MeasureTool Sans";font-style:normal;font-weight:700;font-display:swap;src:url("' + esc(sansUrl) + '") format("woff2");}',
+      '@font-face{font-family:"MeasureTool Mono";font-style:normal;font-weight:400;font-display:swap;src:url("' + esc(monoUrl) + '") format("woff2");}',
+      '@font-face{font-family:"MeasureTool Mono";font-style:normal;font-weight:600;font-display:swap;src:url("' + esc(monoUrl) + '") format("woff2");}',
+      '@font-face{font-family:"MeasureTool Mono";font-style:normal;font-weight:700;font-display:swap;src:url("' + esc(monoUrl) + '") format("woff2");}',
+    ].join('');
+    (document.head || document.documentElement).appendChild(st);
+  }
+
   let PANEL, MARQUEE;
   let distLabels = [];
 
@@ -123,6 +147,7 @@
   }
 
   function buildUI() {
+    ensureMeasureToolFonts();
     if (document.getElementById('mt-root')) {
       ROOT      = document.getElementById('mt-root');
       OVERLAY   = ROOT.querySelector('#mt-overlay');
@@ -192,18 +217,33 @@
 
     const leftBar = el('div', 'cp-toolbar-left', toolbar);
 
+    const modeSwitch = el('div', `cp-mode-switch cp-mode-switch--${S.mode}`, leftBar, 'id=cp-mode-switch');
+    el('span', 'cp-mode-thumb', modeSwitch);
+    const segInsp = el('div', 'cp-mode-seg' + (S.mode === MODE_INSPECTOR ? ' is-active' : ''), modeSwitch);
+    segInsp.setAttribute('data-mode', MODE_INSPECTOR);
+    segInsp.innerHTML = IC.inspect;
+    segInsp.title = 'Inspector  [1]';
+    const segGuides = el('div', 'cp-mode-seg' + (S.mode === MODE_GUIDES ? ' is-active' : ''), modeSwitch);
+    segGuides.setAttribute('data-mode', MODE_GUIDES);
+    segGuides.innerHTML = IC.guides;
+    segGuides.title = 'Guides  [2]';
+    const onModeSegClick = (e, mode) => {
+      e.stopPropagation();
+      if (S.mode !== mode) {
+        S.mode = mode;
+        updatePanel();
+        updateStatusBar();
+      }
+    };
+    segInsp.addEventListener('click', e => onModeSegClick(e, MODE_INSPECTOR));
+    segGuides.addEventListener('click', e => onModeSegClick(e, MODE_GUIDES));
+
     const iconBtn = (icon, tip, isActive, parent) => {
       const b = el('div', 'cp-btn' + (isActive ? ' active' : ''), parent);
       b.innerHTML = icon;
       b.title = tip;
       return b;
     };
-
-    const inspBtn = iconBtn(IC.inspect, 'Inspector  [1]', S.mode === MODE_INSPECTOR, leftBar);
-    inspBtn.addEventListener('click', () => { S.mode = MODE_INSPECTOR; updatePanel(); updateStatusBar(); });
-
-    const guidBtn = iconBtn(IC.guides, 'Guides  [2]', S.mode === MODE_GUIDES, leftBar);
-    guidBtn.addEventListener('click', () => { S.mode = MODE_GUIDES; updatePanel(); updateStatusBar(); });
 
     const statusBar = el('div', 'cp-toolbar-status', toolbar, 'id=cp-toolbar-status');
     el('span', 'sb-left', statusBar, 'id=cp-status-left');
@@ -286,8 +326,6 @@
 
       // Collapsible header
       const hdr = el('div', 'cp-ins-hdr', insSection);
-      const chevron = el('span', 'cp-ins-chevron', hdr);
-      chevron.innerHTML = S.inspectorOpen ? IC.chevD : IC.chevR;
       el('span', 'cp-ins-label', hdr).textContent = 'INSPECTOR';
 
       // Quick-info displayed in header even when body is collapsed
@@ -325,7 +363,6 @@
       // Toggle collapse
       hdr.addEventListener('click', () => {
         S.inspectorOpen = !S.inspectorOpen;
-        chevron.innerHTML = S.inspectorOpen ? IC.chevD : IC.chevR;
         wrap.style.display = S.inspectorOpen ? '' : 'none';
       });
     }
@@ -334,6 +371,11 @@
     scBtn.addEventListener('click', () => {
       S.shortcutsOpen = !S.shortcutsOpen;
       updatePanel();
+    });
+
+    const hidePanelBtn = iconBtn(IC.panelHide, 'Hide panel  [M]', false, tailWrap);
+    hidePanelBtn.addEventListener('click', () => {
+      if (PANEL) PANEL.style.display = 'none';
     });
 
     const scBody = el('div', 'cp-sc-body', PANEL);
@@ -1749,7 +1791,7 @@
     let ox, oy, startL, startT;
     handle.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
-      if (e.target.closest('input, textarea, select, .cp-btn, .cp-unit-btn, .cp-kbd, a, button')) return;
+      if (e.target.closest('input, textarea, select, .cp-btn, .cp-unit-btn, .cp-kbd, .cp-mode-switch, a, button')) return;
       ox = e.clientX; oy = e.clientY;
       const r = panel.getBoundingClientRect();
       startL = r.left; startT = r.top;

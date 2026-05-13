@@ -28,6 +28,12 @@
   "background": {
     "service_worker": "background.js"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/inter-latin.woff2", "fonts/jetbrains-mono-latin.woff2"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "commands": {
     "_execute_action": {
       "suggested_key": {
