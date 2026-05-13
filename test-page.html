@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>MeasureTool Test Page</title>
@@ -123,18 +123,18 @@
 </head>
 <body>
 <div class="page">
-  <h1>MeasureTool 測試頁面</h1>
-  <p class="subtitle">啟用擴充功能後，懸停在任何元素上即可測量</p>
+  <h1>MeasureTool Test Page</h1>
+  <p class="subtitle">Enable the extension and hover over any element to start measuring</p>
 
   <div class="instructions">
-    <strong style="color:#4facfe">如何使用：</strong><br>
-    1. 點擊瀏覽器工具列的 📐 圖示開啟工具<br>
-    2. <span>懸停</span>在元素上查看尺寸與 CSS 屬性<br>
-    3. <span>點擊</span>釘選元素，再懸停其他元素查看距離<br>
-    4. <code>Shift+Click</code> 多選元素<br>
-    5. 按 <code>H</code> / <code>V</code> 鍵新增水平/垂直輔助線（游標位置）<br>
-    6. 按 <code>G</code> 清除所有輔助線，<code>Esc</code> 取消選取<br>
-    7. 按 <code>↑↓</code> 在 DOM 樹中導航父子層
+    <strong style="color:#4facfe">How to use:</strong><br>
+    1. Click the 📐 icon in the browser toolbar to open the tool<br>
+    2. <span>Hover</span> over elements to view size and CSS properties<br>
+    3. <span>Click</span> to pin an element, then hover others to measure distance<br>
+    4. <code>Shift+Click</code> to select multiple elements<br>
+    5. Press <code>H</code> / <code>V</code> to add horizontal / vertical guides at cursor position<br>
+    6. Press <code>Q</code> to clear all guides, <code>Esc</code> to deselect<br>
+    7. Press <code>↑↓</code> to navigate parent / child in the DOM tree
   </div>
 
   <br>
@@ -142,16 +142,16 @@
   <div class="cards">
     <div class="card">
       <h2>Card One</h2>
-      <p>這是一個卡片元素。嘗試懸停在上面查看 padding、border 與 margin 的盒模型資訊。</p>
+      <p>Hover over this card to inspect its padding, border, and margin in the box model panel.</p>
       <span class="badge">Badge</span>
     </div>
     <div class="card">
       <h2>Card Two</h2>
-      <p>點擊釘選此卡片，再移到旁邊的卡片，即可看到兩者之間的間距測量線。</p>
+      <p>Click to pin this card, then hover the next card to see the distance measurement line between them.</p>
     </div>
     <div class="card">
       <h2>Card Three</h2>
-      <p>使用 Shift+Click 同時選取多個卡片，測量整個群組的邊界距離。</p>
+      <p>Use Shift+Click to select multiple cards and measure the boundary distance of the entire group.</p>
     </div>
   </div>
 
@@ -167,11 +167,11 @@
   <div class="flex-section">
     <div class="sidebar">
       <strong>Sidebar</strong>
-      <p style="font-size:12px;color:#888;margin-top:8px">180px fixed width<br>with padding 16px</p>
+      <p style="font-size:12px;color:#888;margin-top:8px">180px fixed width<br>padding 16px</p>
     </div>
     <div class="content-area">
-      <p>主要內容區域使用 flex: 1 自動填滿剩餘空間。嘗試測量 sidebar 到 content 的距離（應為 32px gap）。</p>
-      <p>也可以點擊這段文字區域，在盒模型面板中查看它的 margin 與 padding 值。</p>
+      <p>The main content area uses flex: 1 to fill the remaining space. Try measuring the distance from sidebar to content — it should be 32px gap.</p>
+      <p>Click this text area to inspect its margin and padding values in the box model panel.</p>
       <div>
         <span class="btn">Primary</span>
         <span class="btn outline">Outline</span>
