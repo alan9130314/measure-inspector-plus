@@ -6,6 +6,7 @@
   const SNAP_DIST = 8;
   const MODE_INSPECTOR = 'inspector';
   const MODE_GUIDES    = 'guides';
+  const MODE_CURSOR    = 'cursor';
 
   const STORAGE_KEY    = 'inspectorBmPx';
   const REM_ROOT_KEY   = 'remRootPx';
@@ -55,6 +56,7 @@
     // Consistent outline style (Tabler-like stroke language)
     inspect: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M8.45 8.45L11.7 11.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
     guides:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4.5h10M4.5 2v10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2 7h1M2 9.5h1M7 2v1M9.5 2v1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="4.5" cy="4.5" r="1" fill="currentColor"/></svg>`,
+    cursor:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.8 2.2L9.2 7.1 6.1 7.6 5.1 11.8z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/><path d="M7.2 8.2l2.2 3.1" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>`,
     snap:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2.5v3.2a4 4 0 0 0 8 0V2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 10.2v1.6M11 10.2v1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
     clear:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 4h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.5 4l.7 7.2h3.6L9.5 4M5.2 4V2.8h3.6V4" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.2 6.1v3.2M7.8 6.1v3.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
     shortcuts:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.6" y="2" width="10.8" height="9.4" rx="1.7" stroke="currentColor" stroke-width="1.2"/><path d="M3.3 4.7h1.3M5.4 4.7h1.3M7.5 4.7h1.3M9.6 4.7h1.3M3.3 6.8h1.3M5.4 6.8h1.3M7.5 6.8h1.3M9.6 6.8h1.3M3.3 8.9h3.9M8.1 8.9h2.8" stroke="currentColor" stroke-width="1.05" stroke-linecap="round"/></svg>`,
@@ -227,16 +229,30 @@
     segGuides.setAttribute('data-mode', MODE_GUIDES);
     segGuides.innerHTML = IC.guides;
     segGuides.title = 'Guides  [2]';
+    const segCursor = el('div', 'cp-mode-seg' + (S.mode === MODE_CURSOR ? ' is-active' : ''), modeSwitch);
+    segCursor.setAttribute('data-mode', MODE_CURSOR);
+    segCursor.innerHTML = IC.cursor;
+    segCursor.title = 'Cursor  [3]';
     const onModeSegClick = (e, mode) => {
       e.stopPropagation();
-      if (S.mode !== mode) {
-        S.mode = mode;
-        updatePanel();
-        updateStatusBar();
+      if (S.mode === mode) return;
+      if (mode === MODE_CURSOR) {
+        S.selected = [];
+        S.hovered = null;
+        S.marqueeing = false;
+        S.marqueeStart = null;
+        if (MARQUEE) MARQUEE.style.display = 'none';
+        clearDomNavStack();
+        clearHighlights();
       }
+      S.mode = mode;
+      updatePanel();
+      updateStatusBar();
+      redraw();
     };
     segInsp.addEventListener('click', e => onModeSegClick(e, MODE_INSPECTOR));
     segGuides.addEventListener('click', e => onModeSegClick(e, MODE_GUIDES));
+    segCursor.addEventListener('click', e => onModeSegClick(e, MODE_CURSOR));
 
     const iconBtn = (icon, tip, isActive, parent) => {
       const b = el('div', 'cp-btn' + (isActive ? ' active' : ''), parent);
@@ -297,6 +313,15 @@
 
     // Drag handle behaviour (drag by toolbar area)
     makeDraggable(PANEL, handle);
+
+    // ── Cursor mode hint (below toolbar) ─────────────────────────────────────
+    if (S.mode === MODE_CURSOR) {
+      const cursorBar = el('div', 'cp-cursor-bar', PANEL);
+      const inner = el('div', 'cp-cursor-bar-inner', cursorBar);
+      el('span', 'cp-cursor-label', inner).textContent = 'CURSOR';
+      el('span', 'cp-cursor-hint', inner).textContent =
+        'Interact with the page — no picking, guides, or measure overlay.';
+    }
 
     // ── Guides tools section (below toolbar, same level as inspector) ───────
     if (S.mode === MODE_GUIDES) {
@@ -389,6 +414,7 @@
         ['Show/hide panel',   'M'],
         ['Inspector mode',    '1'],
         ['Guides mode',       '2'],
+        ['Cursor mode',       '3'],
         ['Toggle px / rem',   'U'],
         ['Deselect',          'Esc'],
       ],
@@ -412,9 +438,17 @@
         ['Nudge guide 10px',  'Shift+arrows'],
       ],
     };
+    const scCursor = {
+      title: 'Cursor',
+      rows: [
+        ['Use page normally', 'No overlay measure'],
+      ],
+    };
     const scGroups = S.mode === MODE_GUIDES
       ? [scCommon, scGuides]
-      : [scCommon, scInspector];
+      : S.mode === MODE_CURSOR
+        ? [scCommon, scCursor]
+        : [scCommon, scInspector];
     scGroups.forEach(({ title, rows }) => {
       const grp = el('div', 'cp-sc-group', scBody);
       el('div', 'cp-sc-group-title', grp).textContent = title;
@@ -426,6 +460,7 @@
       });
     });
 
+    if (S.enabled) syncPageInteractionLock();
   }
 
   function updatePanel() {
@@ -457,11 +492,21 @@
       if (typeof onReady === 'function') onReady();
     });
   }
+  function syncPageInteractionLock() {
+    if (!S.enabled) return;
+    if (S.mode === MODE_CURSOR) {
+      document.documentElement.style.userSelect = '';
+      document.documentElement.style.webkitUserSelect = '';
+    } else {
+      document.documentElement.style.userSelect = 'none';
+      document.documentElement.style.webkitUserSelect = 'none';
+    }
+  }
+
   function _enable() {
     buildUI();
     S.enabled = true;
-    document.documentElement.style.userSelect = 'none';
-    document.documentElement.style.webkitUserSelect = 'none';
+    syncPageInteractionLock();
     PANEL.style.display = 'flex';
     updateStatusBar();
     attachEvents();
@@ -527,6 +572,15 @@
       return;
     }
 
+    if (S.mode === MODE_CURSOR) {
+      if (S.hovered !== null) {
+        S.hovered = null;
+        updateHighlights();
+        redraw();
+      }
+      return;
+    }
+
     if (S.mode === MODE_INSPECTOR) {
       if (e.target.closest && e.target.closest('#mt-root')) {
         if (S.hovered !== null) {
@@ -562,7 +616,7 @@
       } else {
         redraw(); // redraw distances with new mouse pos
       }
-    } else {
+    } else if (S.mode === MODE_GUIDES) {
       // Guides mode — cursor snapping highlight
       if (S.snap) {
         const sx = snapPoint('v', e.clientX);
@@ -576,6 +630,7 @@
 
   function onMouseDown(e) {
     if (e.target.closest('#mt-root')) return;
+    if (S.mode === MODE_CURSOR) return;
 
     if (S.mode === MODE_INSPECTOR) {
       // Prevent text selection on shift+click and normal clicks
@@ -621,6 +676,7 @@
 
   function onClick(e) {
     if (e.target.closest('#mt-root')) return;
+    if (S.mode === MODE_CURSOR) return;
 
     if (S.mode === MODE_GUIDES) {
       e.preventDefault();
@@ -667,6 +723,19 @@
       case '2':
         S.mode = MODE_GUIDES;
         updatePanel(); updateStatusBar();
+        e.preventDefault();
+        break;
+      case '3':
+        S.mode = MODE_CURSOR;
+        S.selected = [];
+        S.hovered = null;
+        S.marqueeing = false;
+        S.marqueeStart = null;
+        if (MARQUEE) MARQUEE.style.display = 'none';
+        clearDomNavStack();
+        clearHighlights();
+        updatePanel(); updateStatusBar();
+        redraw();
         e.preventDefault();
         break;
       case 'm': case 'M':
@@ -1738,7 +1807,13 @@
     const left = ROOT && ROOT.querySelector('#cp-status-left');
     const coords = ROOT && ROOT.querySelector('#cp-status-coords');
     if (!left || !coords) return;
-    left.innerHTML = S.selected.length ? `<span class="sb-sel">${S.selected.length} selected</span>` : '';
+    const modeLabel =
+      S.mode === MODE_INSPECTOR ? 'Inspector'
+        : S.mode === MODE_GUIDES ? 'Guides'
+          : 'Cursor';
+    const parts = [`<span class="sb-mode sb-mode--${S.mode}">${modeLabel}</span>`];
+    if (S.selected.length) parts.push(`<span class="sb-sel">${S.selected.length} selected</span>`);
+    left.innerHTML = parts.join('');
     coords.textContent = `x: ${Math.round(S.mouseX)} y: ${Math.round(S.mouseY)}`;
   }
 
