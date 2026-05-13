@@ -1,0 +1,133 @@
+================================================================
+CHROME WEB STORE LISTING — MeasureTool
+================================================================
+
+【簡短說明】(132 字元以內)
+----------------------------------------------------------------
+網頁設計測量工具：懸停即可查看元素尺寸、間距、Box Model 與 CSS 屬性，支援輔助線與多元素距離測量。
+
+
+【完整說明】
+----------------------------------------------------------------
+MeasureTool 是一款為網頁設計師與前端工程師打造的測量工具，無需開啟 DevTools，直接在頁面上完成所有量測作業。
+
+主要功能：
+• 懸停任意元素即時顯示寬高與位置
+• 點擊釘選元素，測量兩元素之間的距離
+• Shift+Click 多選，框選量測整組元素
+• 完整 Box Model 視覺化（margin / border / padding / content）
+• CSS 屬性面板：字型、顏色、display、position、z-index
+• 水平 / 垂直輔助線，支援吸附對齊
+• px / rem 單位即時切換
+• DOM 樹上下導航（↑↓ 鍵）
+
+鍵盤快捷鍵：
+Ctrl+Shift+M  開關工具
+1 / 2         Inspector / Guides 模式
+M             顯示 / 隱藏面板
+H / V         新增水平 / 垂直輔助線
+S             吸附開關
+U             px / rem 切換
+Q             清除輔助線
+Esc           取消選取
+
+
+【權限說明】
+----------------------------------------------------------------
+本擴充功能需要以下兩項權限，以下說明用途：
+
+■ 存取所有網站（<all_urls>）
+  測量工具必須能在使用者正在瀏覽的任何頁面上運作。
+  此權限讓擴充功能的介面（面板、輔助線、量測標記）能夠
+  顯示在任意網頁上。
+
+  本擴充功能「不會」讀取、收集或傳送任何頁面內容、
+  使用者資料或瀏覽紀錄。所有操作均在本機完成，
+  不與任何外部伺服器通訊。
+
+■ scripting 權限
+  當使用者點擊工具列圖示啟動工具時，此權限允許擴充功能
+  將測量介面注入當前頁面。這是 Chrome MV3 擴充功能
+  動態注入內容的標準機制，僅在使用者主動點擊時觸發。
+
+  本擴充功能不會在背景自動執行任何程式碼，
+  也不會在使用者未啟動工具的情況下存取任何頁面。
+
+
+【隱私聲明】
+----------------------------------------------------------------
+• 本工具不收集任何個人資料
+• 不存取頁面內容、表單資料或使用者輸入
+• 不與任何外部伺服器通訊
+• 僅使用 chrome.storage.local 儲存使用者的 UI 偏好設定
+  （面板欄寬），資料保存在本機裝置，隨擴充功能卸載自動清除
+
+
+================================================================
+ENGLISH VERSION
+================================================================
+
+【Short description】
+----------------------------------------------------------------
+Web measurement tool: hover to inspect element size, spacing, box model & CSS. Supports guides and multi-element distance measurement.
+
+
+【Full description】
+----------------------------------------------------------------
+MeasureTool is a web measurement tool for designers and frontend developers. Measure, inspect, and align elements directly on any webpage — no DevTools required.
+
+Features:
+• Hover any element to instantly see its width, height, and position
+• Click to pin an element and measure distances to others
+• Shift+Click or drag to select multiple elements
+• Full Box Model visualization (margin / border / padding / content)
+• CSS inspector: font, color, display, position, z-index
+• Horizontal and vertical guides with snap alignment
+• px / rem unit toggle
+• DOM tree navigation with arrow keys
+
+Keyboard shortcuts:
+Ctrl+Shift+M  Toggle tool
+1 / 2         Inspector / Guides mode
+M             Show / hide panel
+H / V         Add horizontal / vertical guide
+S             Toggle snap
+U             Toggle px / rem
+Q             Clear guides
+Esc           Deselect
+
+
+【Permission explanation】
+----------------------------------------------------------------
+This extension requires the following two permissions:
+
+■ Access to all websites (<all_urls>)
+  The measurement tool needs to work on any page the user is
+  visiting. This permission allows the extension's UI (panel,
+  guides, measurement overlays) to appear on any webpage.
+
+  This extension does NOT read, collect, or transmit any page
+  content, user data, or browsing history. All processing
+  happens locally on your device. No data is sent to any
+  external server.
+
+■ scripting permission
+  When the user clicks the toolbar icon to activate the tool,
+  this permission allows the extension to inject the measurement
+  UI into the current page. This is the standard MV3 mechanism
+  for dynamic content injection, and only triggers when the user
+  explicitly activates the tool.
+
+  The extension does not run any code in the background
+  automatically, and does not access any page without the user
+  actively enabling the tool.
+
+
+【Privacy】
+----------------------------------------------------------------
+• No personal data is collected
+• No page content, form data, or user input is accessed
+• No communication with any external server
+• Only chrome.storage.local is used to save UI preferences
+  (panel width), stored locally and automatically removed
+  when the extension is uninstalled
