@@ -12,6 +12,7 @@
   const REM_ROOT_KEY     = 'remRootPx';
   const THEME_KEY        = 'uiTheme';
   const PANEL_SNAP_KEY   = 'panelSnap';
+  const SCREEN_UNITS     = ['px', 'rem', 'vw', 'vh'];
   const INS_GUTTER     = 5;
   const INS_BM_MIN     = 200;
   const INS_PROPS_MIN  = 160;
@@ -376,7 +377,6 @@
     // ── Settings panel (replaces mode sections when open) ────────────────────
     if (S.settingsOpen) {
       const sp = el('div', 'cp-settings-panel', PANEL);
-
       // Units row
       const unitsSettingRow = el('div', 'cp-sp-row', sp);
       el('span', 'cp-sp-section-label', unitsSettingRow).textContent = 'UNITS';
@@ -396,11 +396,10 @@
           }
         });
       };
-      mkUnitBtn('px');
-      mkUnitBtn('rem');
+      ['px', 'rem', 'vw', 'vh', 'pt', 'in', 'cm', 'mm'].forEach(mkUnitBtn);
 
       if (S.unit === 'rem') {
-        const remWrap = el('div', 'cp-sp-rem', unitsCtrl);
+        const remWrap = el('div', 'cp-sp-rem cp-sp-rem-block', unitsCtrl);
         el('span', 'cp-rem-root-label', remWrap).textContent = '1rem=';
         const remInp = el('input', 'cp-rem-root-inp', remWrap, 'id=cp-rem-root-inp');
         remInp.type = 'number'; remInp.min = '1'; remInp.max = '512'; remInp.step = 'any';
@@ -444,7 +443,7 @@
 
       // Panel snap row
       const snapSettingRow = el('div', 'cp-sp-row', sp);
-      el('span', 'cp-sp-section-label', snapSettingRow).textContent = 'PANEL SNAP';
+      el('span', 'cp-sp-section-label', snapSettingRow).textContent = 'PANEL SMART SNAPPING';
       const snapToggle = el('label', 'cp-sp-toggle', snapSettingRow);
       const snapChk = el('input', '', snapToggle);
       snapChk.type = 'checkbox';
@@ -549,7 +548,7 @@
           ['Inspector mode',    '1'],
           ['Guides mode',       '2'],
           ['Cursor mode',       '3'],
-          ['Toggle px / rem',   'U'],
+          ['Cycle screen units', 'U'],
           ['Deselect',          'Esc'],
         ],
       };
@@ -604,7 +603,8 @@
   }
 
   function toggleUnit() {
-    S.unit = S.unit === 'px' ? 'rem' : 'px';
+    const idx = SCREEN_UNITS.indexOf(S.unit);
+    S.unit = SCREEN_UNITS[(idx < 0 ? 0 : idx + 1) % SCREEN_UNITS.length];
     updatePanel();
     updateStatusBar();
     const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
@@ -1072,7 +1072,7 @@
 
     const badge = document.createElement('div');
     badge.className = `mt-size-badge mt-size-badge-${type}`;
-    badge.textContent = `${fmtU(Math.round(r.width))} × ${fmtU(Math.round(r.height))}`;
+    badge.textContent = `${fmtU(r.width)} × ${fmtU(r.height)}`;
     const bt = r.top < 22 ? r.bottom + 2 : r.top - 20;
     badge.style.cssText = `left:${r.left}px;top:${bt}px;`;
 
@@ -1097,7 +1097,7 @@
     if (!phTag || !phSel || !phSize) return;
     phTag.textContent = `<${tag}>`;
     phSel.textContent = `${id}${cls}`;
-    phSize.textContent = `${fmtU(Math.round(r.width))} × ${fmtU(Math.round(r.height))}`;
+    phSize.textContent = `${fmtU(r.width)} × ${fmtU(r.height)}`;
 
     // Show quick-info in header (visible even when body is collapsed)
     const quick = ROOT.querySelector('#cp-ins-quick');
@@ -1124,7 +1124,7 @@
       axisEl.className = 'cp-ins-pos-axis';
       axisEl.textContent = axis;
       const valEl = document.createElement('span');
-      valEl.textContent = fmtU(Math.round(val));
+      valEl.textContent = fmtU(val);
       wrap.appendChild(axisEl);
       wrap.appendChild(valEl);
       return wrap;
@@ -1216,8 +1216,8 @@
       top:    roundPx(cs.borderTopWidth),   right:  roundPx(cs.borderRightWidth),
       bottom: roundPx(cs.borderBottomWidth),left:   roundPx(cs.borderLeftWidth),
     };
-    const cw = Math.round(r.width  - (parseFloat(cs.paddingLeft)||0)  - (parseFloat(cs.paddingRight)||0)  - (parseFloat(cs.borderLeftWidth)||0)  - (parseFloat(cs.borderRightWidth)||0));
-    const ch = Math.round(r.height - (parseFloat(cs.paddingTop)||0)   - (parseFloat(cs.paddingBottom)||0) - (parseFloat(cs.borderTopWidth)||0)   - (parseFloat(cs.borderBottomWidth)||0));
+    const cw = r.width  - (parseFloat(cs.paddingLeft)||0)  - (parseFloat(cs.paddingRight)||0)  - (parseFloat(cs.borderLeftWidth)||0)  - (parseFloat(cs.borderRightWidth)||0);
+    const ch = r.height - (parseFloat(cs.paddingTop)||0)   - (parseFloat(cs.paddingBottom)||0) - (parseFloat(cs.borderTopWidth)||0)   - (parseFloat(cs.borderBottomWidth)||0);
 
     bmEl.innerHTML = `
       <div class="bm-header">Box Model</div>
@@ -1351,7 +1351,7 @@
     // ── Labels (canvas only — same drawMetricChip as distance labels) ─────
     const drawLabel = (val, x, y, bgColor, textColor) => {
       if (Math.abs(val) < 0.5) return;
-      drawMetricChip(x, y, fmtU(Math.round(val)), bgColor, textColor);
+      drawMetricChip(x, y, fmtU(val), bgColor, textColor);
     };
 
     const midX = (borderBox.l + borderBox.r) / 2;
@@ -1373,7 +1373,7 @@
 
     // Content size label (slightly taller chip, horizontal padding 4+4 ≈ old +8)
     if (cw > 30 && ch > 16) {
-      const label = `${fmtU(Math.round(cw))} × ${fmtU(Math.round(ch))}`;
+      const label = `${fmtU(cw)} × ${fmtU(ch)}`;
       drawMetricChip(contentBox.l + cw / 2, contentBox.t + ch / 2, label, L_C_BG, L_C_FG, 18, 4, 4);
     }
 
@@ -1703,7 +1703,7 @@
     const fg = chipKind === 'guide'
       ? (_p('--mt-label-guide-metric-fg') || _p('--mt-label-orange-fg') || '#fff8f6')
       : (_p('--mt-label-orange-fg') || '#ffe3b3');
-    drawMetricChip(lx, ly, fmtU(Math.round(dist)), bg, fg);
+    drawMetricChip(lx, ly, fmtU(dist), bg, fg);
   }
 
   // ── Guide rendering ───────────────────────────────────────────────────────
@@ -1747,7 +1747,7 @@
       // Label
       const label = document.createElement('div');
       label.className = 'mt-guide-label';
-      label.textContent = fmtU(Math.round(g.pos));
+      label.textContent = fmtU(g.pos);
       if (g.type === 'h') label.style.cssText = `left:4px;top:${g.pos - 16}px;`;
       else                label.style.cssText = `left:${g.pos + 4}px;top:4px;`;
       ROOT.appendChild(label);
@@ -2065,7 +2065,7 @@
     const vw = document.documentElement.clientWidth;
     const vh = document.documentElement.clientHeight;
     gaps.forEach(({ x1, y1, x2, y2, size, axis }) => {
-      addGapLabel(Math.round(size), x1, y1, x2, y2, axis, vw, vh);
+      addGapLabel(size, x1, y1, x2, y2, axis, vw, vh);
     });
   }
 
@@ -2419,7 +2419,7 @@
     };
   }
 
-  function roundPx(val) { return Math.round(parseFloat(val) || 0); }
+  function roundPx(val) { return parseFloat(val) || 0; }
   function parseRemRootFromStorage(raw) {
     const n = typeof raw === 'number' ? raw : parseFloat(raw);
     if (!Number.isFinite(n)) return 16;
@@ -2430,8 +2430,16 @@
   }
   function fmtU(n) {
     if (n === 0) return '0';
-    if (S.unit === 'rem') { const v = n / rootFontSize(); return parseFloat(v.toFixed(3)) + 'rem'; }
-    return n + 'px';
+    switch (S.unit) {
+      case 'rem': { const v = n / rootFontSize();            return parseFloat(v.toFixed(3)) + 'rem'; }
+      case 'vw':  { const v = n * 100 / window.innerWidth;  return parseFloat(v.toFixed(2)) + 'vw';  }
+      case 'vh':  { const v = n * 100 / window.innerHeight; return parseFloat(v.toFixed(2)) + 'vh';  }
+      case 'pt':  { const v = n * 0.75;                     return parseFloat(v.toFixed(2)) + 'pt';  }
+      case 'in':  { const v = n / 96;                       return parseFloat(v.toFixed(3)) + 'in';  }
+      case 'cm':  { const v = n * 2.54 / 96;                return parseFloat(v.toFixed(2)) + 'cm';  }
+      case 'mm':  { const v = n * 25.4 / 96;                return parseFloat(v.toFixed(1)) + 'mm';  }
+      default: { const v = parseFloat(n.toFixed(2)); return (v === 0 ? '0' : v + 'px'); }
+    }
   }
   function fmtCssLen(val) {
     if (!val || val === 'normal') return val;
