@@ -586,6 +586,30 @@
 .cp-sp-theme-dot--light { background:#dbe4f0; border:1px solid #94a3b8; }
 .cp-sp-theme-dot--dark  { background:#16202d; border:1px solid #374151; }
 
+.cp-sp-toggle {
+  position:relative; display:inline-flex; align-items:center;
+  width:36px; height:20px; cursor:pointer; flex-shrink:0;
+}
+.cp-sp-toggle input { opacity:0; width:0; height:0; position:absolute; }
+.cp-sp-toggle-slider {
+  position:absolute; inset:0;
+  background:var(--mt-surface-2); border:1px solid var(--mt-border-ui);
+  border-radius:10px; transition:background .15s, border-color .15s;
+}
+.cp-sp-toggle-slider::before {
+  content:''; position:absolute;
+  width:14px; height:14px; border-radius:50%;
+  background:var(--mt-text-dim);
+  top:2px; left:2px;
+  transition:transform .15s, background .15s;
+}
+.cp-sp-toggle input:checked + .cp-sp-toggle-slider {
+  background:var(--mt-active-bg); border-color:var(--mt-cyan);
+}
+.cp-sp-toggle input:checked + .cp-sp-toggle-slider::before {
+  transform:translateX(16px); background:var(--mt-cyan);
+}
+
 #mt-panel #mt-panel-inspector .cp-ins-label,
 #mt-panel #mt-panel-inspector .bm-header,
 #mt-panel #mt-panel-inspector .cp-prop-title {

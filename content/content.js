@@ -8,9 +8,10 @@
   const MODE_GUIDES    = 'guides';
   const MODE_CURSOR    = 'cursor';
 
-  const STORAGE_KEY    = 'inspectorBmPx';
-  const REM_ROOT_KEY   = 'remRootPx';
-  const THEME_KEY      = 'uiTheme';
+  const STORAGE_KEY      = 'inspectorBmPx';
+  const REM_ROOT_KEY     = 'remRootPx';
+  const THEME_KEY        = 'uiTheme';
+  const PANEL_SNAP_KEY   = 'panelSnap';
   const INS_GUTTER     = 5;
   const INS_BM_MIN     = 200;
   const INS_PROPS_MIN  = 160;
@@ -44,6 +45,7 @@
     inspectorBmPx:  null,
     remRootPx:      16,
     theme:          'light',
+    panelSnap:      true,
     settingsOpen:   false,
     shortcutsOpen:  false,
     panelCollapsed: false,
@@ -246,18 +248,18 @@
         PANEL.style.transform = 'none';
         PANEL.style.right = 'auto';
         PANEL.style.bottom = 'auto';
-        showSnapGhost(PANEL);
+        if (S.panelSnap) showSnapGhost(PANEL);
         const move = ev => {
           if (Math.abs(ev.clientX - ox) > 3 || Math.abs(ev.clientY - oy) > 3) hasDragged = true;
           PANEL.style.left = `${startL + ev.clientX - ox}px`;
           PANEL.style.top  = `${startT + ev.clientY - oy}px`;
-          updateSnapGhost(PANEL);
+          if (S.panelSnap) updateSnapGhost(PANEL);
         };
         const up = () => {
           document.removeEventListener('mousemove', move, true);
           document.removeEventListener('mouseup', up, true);
           removeSnapGhost();
-          if (hasDragged) snapPanelToGrid(PANEL);
+          if (hasDragged && S.panelSnap) snapPanelToGrid(PANEL);
         };
         document.addEventListener('mousemove', move, true);
         document.addEventListener('mouseup', up, true);
@@ -269,7 +271,11 @@
         const zone = _collapseZone;
         _collapseZone = -1;
         updatePanel();
-        if (zone >= 0) expandToZone(zone); else snapPanelToGrid(PANEL);
+        if (S.panelSnap) {
+          if (zone >= 0) expandToZone(zone); else snapPanelToGrid(PANEL);
+        } else {
+          clampPanelToViewport();
+        }
       };
       PANEL.addEventListener('mousedown', _collapseMousedown);
       PANEL.addEventListener('click', _collapseClick);
@@ -436,6 +442,21 @@
       };
       mkThemeBtn('light', 'Light');
       mkThemeBtn('dark', 'Dark');
+
+      // Panel snap row
+      const snapSettingRow = el('div', 'cp-sp-row', sp);
+      el('span', 'cp-sp-section-label', snapSettingRow).textContent = 'PANEL SNAP';
+      const snapToggle = el('label', 'cp-sp-toggle', snapSettingRow);
+      const snapChk = el('input', '', snapToggle);
+      snapChk.type = 'checkbox';
+      snapChk.checked = S.panelSnap;
+      el('span', 'cp-sp-toggle-slider', snapToggle);
+      snapChk.addEventListener('change', e => {
+        e.stopPropagation();
+        S.panelSnap = snapChk.checked;
+        if (!S.panelSnap) _currentSnapZone = -1;
+        try { chrome.storage.local.set({ [PANEL_SNAP_KEY]: S.panelSnap }); } catch (_) { /* ignore */ }
+      });
     }
 
     // ── Cursor mode hint (below toolbar) ─────────────────────────────────────
@@ -594,11 +615,12 @@
 
   // ── Enable / Disable ──────────────────────────────────────────────────────
   function enable(onReady) {
-    chrome.storage.local.get([STORAGE_KEY, REM_ROOT_KEY, THEME_KEY], result => {
+    chrome.storage.local.get([STORAGE_KEY, REM_ROOT_KEY, THEME_KEY, PANEL_SNAP_KEY], result => {
       const v = result[STORAGE_KEY];
       S.inspectorBmPx = (Number.isFinite(v) && v >= INS_BM_MIN) ? v : 340;
       S.remRootPx = parseRemRootFromStorage(result[REM_ROOT_KEY]);
       S.theme = result[THEME_KEY] === 'dark' ? 'dark' : 'light';
+      S.panelSnap = result[PANEL_SNAP_KEY] !== false;
       _enable();
       if (typeof onReady === 'function') onReady();
     });
@@ -856,7 +878,11 @@
             const zone = _collapseZone;
             _collapseZone = -1;
             updatePanel();
-            if (zone >= 0) expandToZone(zone); else snapPanelToGrid(PANEL);
+            if (S.panelSnap) {
+              if (zone >= 0) expandToZone(zone); else snapPanelToGrid(PANEL);
+            } else {
+              clampPanelToViewport();
+            }
           } else {
             _collapseTarget = computeCollapseTarget();
             S.panelCollapsed = true;
@@ -2236,15 +2262,33 @@
 
   // Re-apply current snap zone without animation — called after content changes panel height
   function applyCurrentSnapZone() {
-    if (_currentSnapZone < 0 || S.panelCollapsed) return;
-    const snaps = calcSnapPositions(PANEL);
-    const [sl, st] = snaps[_currentSnapZone];
+    if (S.panelCollapsed) return;
+    if (S.panelSnap && _currentSnapZone >= 0) {
+      const snaps = calcSnapPositions(PANEL);
+      const [sl, st] = snaps[_currentSnapZone];
+      PANEL.style.transition = '';
+      PANEL.style.transform  = 'none';
+      PANEL.style.right      = 'auto';
+      PANEL.style.bottom     = 'auto';
+      PANEL.style.left = `${sl}px`;
+      PANEL.style.top  = `${st}px`;
+    } else if (!S.panelSnap) {
+      clampPanelToViewport();
+    }
+  }
+
+  function clampPanelToViewport() {
+    const r  = PANEL.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const cl = Math.min(Math.max(r.left, SNAP_MARGIN), vw - r.width  - SNAP_MARGIN);
+    const ct = Math.min(Math.max(r.top,  SNAP_MARGIN), vh - r.height - SNAP_MARGIN);
+    if (Math.round(cl) === Math.round(r.left) && Math.round(ct) === Math.round(r.top)) return;
     PANEL.style.transition = '';
     PANEL.style.transform  = 'none';
     PANEL.style.right      = 'auto';
     PANEL.style.bottom     = 'auto';
-    PANEL.style.left = `${sl}px`;
-    PANEL.style.top  = `${st}px`;
+    PANEL.style.left = `${cl}px`;
+    PANEL.style.top  = `${ct}px`;
   }
 
   function showSnapGhost(panel) {
@@ -2288,17 +2332,17 @@
       panel.style.transform = 'none';
       panel.style.right = 'auto';
       panel.style.bottom = 'auto';
-      showSnapGhost(panel);
+      if (S.panelSnap) showSnapGhost(panel);
       const move = ev => {
         panel.style.left = `${startL + ev.clientX - ox}px`;
         panel.style.top  = `${startT + ev.clientY - oy}px`;
-        updateSnapGhost(panel);
+        if (S.panelSnap) updateSnapGhost(panel);
       };
       const up = () => {
         document.removeEventListener('mousemove', move, true);
         document.removeEventListener('mouseup',   up,   true);
         removeSnapGhost();
-        snapPanelToGrid(panel);
+        if (S.panelSnap) snapPanelToGrid(panel);
       };
       document.addEventListener('mousemove', move, true);
       document.addEventListener('mouseup',   up,   true);
