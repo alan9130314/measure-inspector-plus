@@ -220,8 +220,7 @@
 
     const leftBar = el('div', 'cp-toolbar-left', toolbar);
 
-    const modeSwitch = el('div', `cp-mode-switch cp-mode-switch--${S.mode}`, leftBar, 'id=cp-mode-switch');
-    el('span', 'cp-mode-thumb', modeSwitch);
+    const modeSwitch = el('div', 'cp-mode-switch', leftBar, 'id=cp-mode-switch');
     const segInsp = el('div', 'cp-mode-seg' + (S.mode === MODE_INSPECTOR ? ' is-active' : ''), modeSwitch);
     segInsp.setAttribute('data-mode', MODE_INSPECTOR);
     segInsp.innerHTML = IC.inspect;
@@ -272,6 +271,7 @@
     const scBtn = iconBtn(IC.shortcuts, 'Shortcuts', S.shortcutsOpen, tailWrap);
     scBtn.addEventListener('click', () => {
       S.shortcutsOpen = !S.shortcutsOpen;
+      if (S.shortcutsOpen) S.settingsOpen = false;
       updatePanel();
     });
 
@@ -284,6 +284,7 @@
     settingsBtn.addEventListener('click', e => {
       e.stopPropagation();
       S.settingsOpen = !S.settingsOpen;
+      if (S.settingsOpen) S.shortcutsOpen = false;
       updatePanel();
     });
 
@@ -361,7 +362,7 @@
     }
 
     // ── Cursor mode hint (below toolbar) ─────────────────────────────────────
-    if (!S.settingsOpen && S.mode === MODE_CURSOR) {
+    if (!S.settingsOpen && !S.shortcutsOpen && S.mode === MODE_CURSOR) {
       const cursorBar = el('div', 'cp-cursor-bar', PANEL);
       const inner = el('div', 'cp-cursor-bar-inner', cursorBar);
       el('span', 'cp-cursor-label', inner).textContent = 'CURSOR';
@@ -370,7 +371,7 @@
     }
 
     // ── Guides tools section (below toolbar, same level as inspector) ───────
-    if (!S.settingsOpen && S.mode === MODE_GUIDES) {
+    if (!S.settingsOpen && !S.shortcutsOpen && S.mode === MODE_GUIDES) {
       const guidesSection = el('div', 'cp-guides-tools', PANEL);
       const guidesHead = el('div', 'cp-guides-tools-head', guidesSection);
       el('span', 'cp-guides-label', guidesHead).textContent = 'GUIDES';
@@ -392,7 +393,7 @@
     }
 
     // ── Inspector section (only in inspector mode) ───────────────────────────
-    if (!S.settingsOpen && S.mode === MODE_INSPECTOR) {
+    if (!S.settingsOpen && !S.shortcutsOpen && S.mode === MODE_INSPECTOR) {
       const insSection = el('div', 'cp-inspector', PANEL, 'id=mt-panel-inspector');
 
       // Collapsible header
@@ -438,59 +439,57 @@
       });
     }
 
-    const scBody = el('div', 'cp-sc-body', PANEL);
-    scBody.style.display = S.shortcutsOpen ? 'flex' : 'none';
+    // ── Shortcuts panel (replaces mode sections when open) ───────────────────
+    if (S.shortcutsOpen) {
+      const shp = el('div', 'cp-shortcuts-panel', PANEL);
 
-    const scCommon = {
-      title: 'Common',
-      rows: [
-        ['Toggle tool',       'Ctrl+Shift+M'],
-        ['Show/hide panel',   'M'],
-        ['Inspector mode',    '1'],
-        ['Guides mode',       '2'],
-        ['Cursor mode',       '3'],
-        ['Toggle px / rem',   'U'],
-        ['Deselect',          'Esc'],
-      ],
-    };
-    const scInspector = {
-      title: 'Inspector',
-      rows: [
-        ['Multi-select',      'Shift+Click'],
-        ['DOM parent / child', '↑ / ↓'],
-      ],
-    };
-    const scGuides = {
-      title: 'Guides',
-      rows: [
-        ['Add H guide',       'H'],
-        ['Add V guide',       'V'],
-        ['Toggle snap',       'S'],
-        ['Add guide (click)', 'Click'],
-        ['Clear guides',      'Q'],
-        ['Nudge guide 1px',   '← → ↑ ↓'],
-        ['Nudge guide 10px',  'Shift+arrows'],
-      ],
-    };
-    const scCursor = {
-      title: 'Cursor',
-      rows: [['Use page normally', 'No overlay']],
-    };
-    const scGroups = S.mode === MODE_GUIDES
-      ? [scCommon, scGuides]
-      : S.mode === MODE_CURSOR
-        ? [scCommon, scCursor]
-        : [scCommon, scInspector];
-    scGroups.forEach(({ title, rows }) => {
-      const grp = el('div', 'cp-sc-group', scBody);
-      el('div', 'cp-sc-group-title', grp).textContent = title;
-      const grid = el('div', 'cp-sc-group-rows', grp);
-      rows.forEach(([label, key]) => {
-        const r = el('div', 'cp-sc-row', grid);
-        el('span', 'cp-sc-label', r).textContent = label;
-        el('span', 'cp-kbd', r).textContent = key;
+      const scCommon = {
+        title: 'Common',
+        rows: [
+          ['Toggle tool',       'Ctrl+Shift+M'],
+          ['Show/hide panel',   'M'],
+          ['Inspector mode',    '1'],
+          ['Guides mode',       '2'],
+          ['Cursor mode',       '3'],
+          ['Toggle px / rem',   'U'],
+          ['Deselect',          'Esc'],
+        ],
+      };
+      const scInspector = {
+        title: 'Inspector',
+        rows: [
+          ['Multi-select',      'Shift+Click'],
+          ['DOM parent / child', '↑ / ↓'],
+        ],
+      };
+      const scGuides = {
+        title: 'Guides',
+        rows: [
+          ['Add H guide',       'H'],
+          ['Add V guide',       'V'],
+          ['Toggle snap',       'S'],
+          ['Add guide (click)', 'Click'],
+          ['Clear guides',      'Q'],
+          ['Nudge guide 1px',   '← → ↑ ↓'],
+          ['Nudge guide 10px',  'Shift+arrows'],
+        ],
+      };
+      const scCursor = {
+        title: 'Cursor',
+        rows: [['Use page normally', 'No overlay']],
+      };
+      const scGroups = [scCommon, scInspector, scGuides, scCursor];
+      scGroups.forEach(({ title, rows }) => {
+        const grp = el('div', 'cp-sc-group', shp);
+        el('div', 'cp-sc-group-title', grp).textContent = title;
+        const grid = el('div', 'cp-sc-group-rows', grp);
+        rows.forEach(([label, key]) => {
+          const r = el('div', 'cp-sc-row', grid);
+          el('span', 'cp-sc-label', r).textContent = label;
+          el('span', 'cp-kbd', r).textContent = key;
+        });
       });
-    });
+    }
 
     if (S.enabled) syncPageInteractionLock();
   }
