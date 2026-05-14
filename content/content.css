@@ -545,6 +545,71 @@
   min-width:0;
 }
 
+/* ── Settings panel ─────────────────────────────────────────── */
+.cp-settings-panel {
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:8px var(--cp-row-pad-x-end) 8px var(--cp-row-pad-x-start);
+  background:var(--mt-surface-1);
+  border-bottom:1px solid var(--mt-panel-border);
+}
+.cp-sp-row {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px; min-height:32px;
+}
+.cp-sp-section-label {
+  font-size:9px; font-weight:700; font-family:var(--mt-mono);
+  color:var(--mt-text-dim); text-transform:uppercase; letter-spacing:.6px;
+  flex-shrink:0;
+}
+.cp-sp-units {
+  display:flex; gap:4px; flex-shrink:0;
+}
+.cp-sp-unit-btn {
+  height:26px; padding:0 10px; border-radius:6px;
+  border:1px solid var(--mt-border-ui);
+  background:var(--mt-surface-2);
+  color:var(--mt-text-primary);
+  font:700 10px var(--mt-mono);
+  cursor:pointer;
+  transition:background .12s, color .12s, border-color .12s;
+}
+.cp-sp-unit-btn:hover:not(.is-active) {
+  background:var(--mt-btn-hover-bg); color:var(--mt-text-bright); border-color:var(--mt-border-hover);
+}
+.cp-sp-unit-btn.is-active {
+  background:var(--mt-active-bg); color:var(--mt-active-fg); border-color:var(--mt-cyan);
+}
+.cp-sp-rem {
+  display:flex; align-items:center; gap:4px;
+  font:700 10px var(--mt-mono); color:var(--mt-text-dim);
+  margin-left:4px;
+}
+.cp-sp-themes {
+  display:flex; gap:4px; flex-shrink:0;
+}
+.cp-sp-theme-btn {
+  display:flex; align-items:center; gap:5px;
+  height:26px; padding:0 10px; border-radius:6px;
+  border:1px solid var(--mt-border-ui);
+  background:var(--mt-surface-2); color:var(--mt-text-primary);
+  font:600 10px var(--mt-mono); cursor:pointer;
+  transition:background .12s, color .12s, border-color .12s;
+}
+.cp-sp-theme-btn:hover:not(.is-active) {
+  background:var(--mt-btn-hover-bg); color:var(--mt-text-bright); border-color:var(--mt-border-hover);
+}
+.cp-sp-theme-btn.is-active {
+  background:var(--mt-active-bg); color:var(--mt-active-fg); border-color:var(--mt-cyan);
+}
+.cp-sp-theme-name { line-height:1; }
+.cp-sp-theme-dot {
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+}
+.cp-sp-theme-dot--light { background:#dbe4f0; border:1px solid #94a3b8; }
+.cp-sp-theme-dot--dark  { background:#16202d; border:1px solid #374151; }
+
 /* Inspector：標題/小標改為一般大小寫（覆寫 .cp-ins-label / .bm-header / .cp-prop-title 的 uppercase） */
 #mt-panel #mt-panel-inspector .cp-ins-label,
 #mt-panel #mt-panel-inspector .bm-header,
@@ -790,6 +855,11 @@
   gap:10px;
   padding:8px 12px 10px;
   background:var(--mt-surface-2);
+}
+.cp-sc-body--inline {
+  display:flex;
+  padding:0;
+  background:transparent;
 }
 .cp-sc-group {
   display:flex;

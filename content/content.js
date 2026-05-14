@@ -46,7 +46,7 @@
     remRootPx:      16,
     /** `dark` | `light` — 面板與標籤配色 */
     theme:          'light',
-    shortcutsOpen:  false,
+    settingsOpen:   false,
     /** ↑ 往父層時 push 的節點；↓ 優先回到最近一次離開的子節點 */
     domNavStack:    [],
   };
@@ -63,6 +63,7 @@
     sun:     `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.4" stroke="currentColor" stroke-width="1.35"/><path d="M7 1.5v1.3M7 11.2v1.3M1.5 7h1.3M11.2 7h1.3M2.9 2.9l.9.9M10.2 10.2l.9.9M11.1 2.9l-.9.9M3.8 10.2l-.9.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
     moon:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.9 2.5a4.7 4.7 0 1 0 2.6 8.6 4.2 4.2 0 1 1-2.6-8.6z" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     panelHide: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2.5" width="10" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.35"/><path d="M4.2 11.25h5.6M7 9v2.25" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/><path d="M5.2 7.35L7 9.15l1.8-1.8" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    settings:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.7 1.9h2.6l.4 1.5 1.4.6 1.4-.7 1.3 2.3-1 .9.1 1.6 1.2.8-.9 2.4-1.6-.1-1.2 1-.1 1.6H5.8l-.5-1.5-1.4-.6-1.4.7-1.3-2.3 1-.9-.1-1.6-1.2-.8.9-2.4 1.6.1 1.2-1 .1-1.6z" stroke="currentColor" stroke-width="1.05" stroke-linejoin="round"/><circle cx="7" cy="7" r="1.9" stroke="currentColor" stroke-width="1.2"/></svg>`,
   };
 
   // ── DOM refs ─────────────────────────────────────────────────────────────
@@ -268,54 +269,99 @@
     const rightBar = el('div', 'cp-toolbar-right', toolbar);
     const tailWrap = el('div', 'cp-toolbar-tail', rightBar);
 
-    const unitBtn = el('div', 'cp-btn cp-unit-btn', tailWrap);
-    unitBtn.textContent = S.unit;
-    unitBtn.title = 'Toggle units  [U]';
-    unitBtn.addEventListener('click', toggleUnit);
-
-    const remRootWrap = el('div', 'cp-rem-root-wrap', statusBar);
-    remRootWrap.style.visibility = S.unit === 'rem' ? 'visible' : 'hidden';
-    remRootWrap.style.pointerEvents = S.unit === 'rem' ? 'auto' : 'none';
-    el('span', 'cp-rem-root-label', remRootWrap).textContent = '1rem=';
-    const remInp = el('input', 'cp-rem-root-inp', remRootWrap, 'id=cp-rem-root-inp');
-    remInp.type = 'number';
-    remInp.min = '1';
-    remInp.max = '512';
-    remInp.step = 'any';
-    remInp.value = String(S.remRootPx);
-    remInp.title = 'Custom rem base (px per 1rem)';
-    const stopKeyBubble = e => e.stopPropagation();
-    remInp.addEventListener('keydown', stopKeyBubble);
-    remInp.addEventListener('keyup', stopKeyBubble);
-    remInp.addEventListener('change', () => {
-      const n = parseRemRootFromStorage(remInp.value);
-      remInp.value = String(n);
-      S.remRootPx = n;
-      try { chrome.storage.local.set({ [REM_ROOT_KEY]: n }); } catch (_) { /* ignore */ }
-      redraw();
-      const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
-      if (inspected) showInspector(inspected);
+    const scBtn = iconBtn(IC.shortcuts, 'Shortcuts', S.shortcutsOpen, tailWrap);
+    scBtn.addEventListener('click', () => {
+      S.shortcutsOpen = !S.shortcutsOpen;
+      updatePanel();
     });
 
-    const themeBtn = iconBtn(
-      S.theme === 'light' ? IC.moon : IC.sun,
-      S.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme',
-      false,
-      tailWrap
-    );
-    themeBtn.addEventListener('click', () => {
-      S.theme = S.theme === 'light' ? 'dark' : 'light';
-      try { chrome.storage.local.set({ [THEME_KEY]: S.theme }); } catch (_) { /* ignore */ }
-      applyTheme();
+    const hidePanelBtn = iconBtn(IC.panelHide, 'Hide panel  [M]', false, tailWrap);
+    hidePanelBtn.addEventListener('click', () => {
+      if (PANEL) PANEL.style.display = 'none';
+    });
+
+    const settingsBtn = iconBtn(IC.settings, 'Settings', S.settingsOpen, tailWrap);
+    settingsBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      S.settingsOpen = !S.settingsOpen;
       updatePanel();
-      updateStatusBar();
     });
 
     // Drag handle behaviour (drag by toolbar area)
     makeDraggable(PANEL, handle);
 
+    // ── Settings panel (replaces mode sections when open) ────────────────────
+    if (S.settingsOpen) {
+      const sp = el('div', 'cp-settings-panel', PANEL);
+
+      // Units row
+      const unitsSettingRow = el('div', 'cp-sp-row', sp);
+      el('span', 'cp-sp-section-label', unitsSettingRow).textContent = 'UNITS';
+      const unitsCtrl = el('div', 'cp-sp-units', unitsSettingRow);
+      const mkUnitBtn = unit => {
+        const b = el('button', 'cp-sp-unit-btn' + (S.unit === unit ? ' is-active' : ''), unitsCtrl);
+        b.textContent = unit.toUpperCase();
+        b.addEventListener('click', e => {
+          e.stopPropagation();
+          if (S.unit !== unit) {
+            S.unit = unit;
+            updatePanel();
+            updateStatusBar();
+            const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
+            if (inspected) showInspector(inspected);
+            redraw();
+          }
+        });
+      };
+      mkUnitBtn('px');
+      mkUnitBtn('rem');
+
+      if (S.unit === 'rem') {
+        const remWrap = el('div', 'cp-sp-rem', unitsCtrl);
+        el('span', 'cp-rem-root-label', remWrap).textContent = '1rem=';
+        const remInp = el('input', 'cp-rem-root-inp', remWrap, 'id=cp-rem-root-inp');
+        remInp.type = 'number'; remInp.min = '1'; remInp.max = '512'; remInp.step = 'any';
+        remInp.value = String(S.remRootPx);
+        remInp.title = 'Custom rem base (px per 1rem)';
+        const stopKeyBubble = e => e.stopPropagation();
+        remInp.addEventListener('keydown', stopKeyBubble);
+        remInp.addEventListener('keyup', stopKeyBubble);
+        remInp.addEventListener('change', () => {
+          const n = parseRemRootFromStorage(remInp.value);
+          remInp.value = String(n);
+          S.remRootPx = n;
+          try { chrome.storage.local.set({ [REM_ROOT_KEY]: n }); } catch (_) { /* ignore */ }
+          redraw();
+          const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
+          if (inspected) showInspector(inspected);
+        });
+      }
+
+      // Theme row
+      const themeSettingRow = el('div', 'cp-sp-row', sp);
+      el('span', 'cp-sp-section-label', themeSettingRow).textContent = 'THEME';
+      const themeCtrl = el('div', 'cp-sp-themes', themeSettingRow);
+      const mkThemeBtn = (themeVal, label) => {
+        const btn = el('button', 'cp-sp-theme-btn' + (S.theme === themeVal ? ' is-active' : ''), themeCtrl);
+        el('span', `cp-sp-theme-dot cp-sp-theme-dot--${themeVal}`, btn);
+        el('span', 'cp-sp-theme-name', btn).textContent = label;
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          if (S.theme !== themeVal) {
+            S.theme = themeVal;
+            try { chrome.storage.local.set({ [THEME_KEY]: S.theme }); } catch (_) { /* ignore */ }
+            applyTheme();
+            updatePanel();
+            updateStatusBar();
+          }
+        });
+      };
+      mkThemeBtn('light', 'Light');
+      mkThemeBtn('dark', 'Dark');
+    }
+
     // ── Cursor mode hint (below toolbar) ─────────────────────────────────────
-    if (S.mode === MODE_CURSOR) {
+    if (!S.settingsOpen && S.mode === MODE_CURSOR) {
       const cursorBar = el('div', 'cp-cursor-bar', PANEL);
       const inner = el('div', 'cp-cursor-bar-inner', cursorBar);
       el('span', 'cp-cursor-label', inner).textContent = 'CURSOR';
@@ -324,7 +370,7 @@
     }
 
     // ── Guides tools section (below toolbar, same level as inspector) ───────
-    if (S.mode === MODE_GUIDES) {
+    if (!S.settingsOpen && S.mode === MODE_GUIDES) {
       const guidesSection = el('div', 'cp-guides-tools', PANEL);
       const guidesHead = el('div', 'cp-guides-tools-head', guidesSection);
       el('span', 'cp-guides-label', guidesHead).textContent = 'GUIDES';
@@ -346,7 +392,7 @@
     }
 
     // ── Inspector section (only in inspector mode) ───────────────────────────
-    if (S.mode === MODE_INSPECTOR) {
+    if (!S.settingsOpen && S.mode === MODE_INSPECTOR) {
       const insSection = el('div', 'cp-inspector', PANEL, 'id=mt-panel-inspector');
 
       // Collapsible header
@@ -392,21 +438,9 @@
       });
     }
 
-    const scBtn = iconBtn(IC.shortcuts, 'Shortcuts', S.shortcutsOpen, tailWrap);
-    scBtn.addEventListener('click', () => {
-      S.shortcutsOpen = !S.shortcutsOpen;
-      updatePanel();
-    });
-
-    const hidePanelBtn = iconBtn(IC.panelHide, 'Hide panel  [M]', false, tailWrap);
-    hidePanelBtn.addEventListener('click', () => {
-      if (PANEL) PANEL.style.display = 'none';
-    });
-
     const scBody = el('div', 'cp-sc-body', PANEL);
     scBody.style.display = S.shortcutsOpen ? 'flex' : 'none';
 
-    /** @type {{ title: string, rows: [string, string][] }[]} */
     const scCommon = {
       title: 'Common',
       rows: [
@@ -440,9 +474,7 @@
     };
     const scCursor = {
       title: 'Cursor',
-      rows: [
-        ['Use page normally', 'No overlay measure'],
-      ],
+      rows: [['Use page normally', 'No overlay']],
     };
     const scGroups = S.mode === MODE_GUIDES
       ? [scCommon, scGuides]
