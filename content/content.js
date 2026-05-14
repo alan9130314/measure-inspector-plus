@@ -1070,15 +1070,29 @@
     propsEl.innerHTML = '';
     const posRow = el('div', 'cp-ins-pos', propsEl);
     el('span', 'cp-ins-pos-label', posRow).textContent = 'Viewport';
-    const phPosEl = el('span', 'cp-ins-pos-val', posRow, 'id=ph-pos');
-    phPosEl.title = 'Border box top-left relative to the viewport (getBoundingClientRect.left / .top)';
-    phPosEl.textContent = `${fmtU(Math.round(r.left))}, ${fmtU(Math.round(r.top))}`;
+    const phPosEl = el('span', 'cp-ins-pos-coords', posRow, 'id=ph-pos');
+    phPosEl.title = 'Border box position relative to the viewport (getBoundingClientRect)';
+    const mkCoord = (axis, val) => {
+      const wrap = document.createElement('span');
+      wrap.className = 'cp-ins-pos-coord';
+      const axisEl = document.createElement('span');
+      axisEl.className = 'cp-ins-pos-axis';
+      axisEl.textContent = axis;
+      const valEl = document.createElement('span');
+      valEl.textContent = fmtU(Math.round(val));
+      wrap.appendChild(axisEl);
+      wrap.appendChild(valEl);
+      return wrap;
+    };
+    phPosEl.appendChild(mkCoord('top', r.top));
+    phPosEl.appendChild(mkCoord('left', r.left));
 
     const fontFamily = cs.fontFamily.split(',')[0].replace(/["']/g,'').trim();
     const display    = cs.display;
     let   layout     = display;
     if (display === 'flex') layout = `flex / ${cs.flexDirection}`;
     if (display === 'grid') layout = `grid`;
+    const isFlexGrid = display === 'flex' || display === 'grid';
 
     const bgRaw = (cs.backgroundColor || '').replace(/\s/g, '');
     const bgTransparent =
@@ -1087,19 +1101,39 @@
       bgRaw === 'rgba(0,0,0,0)';
     const bgOpaque = !bgTransparent;
 
+    const lsRaw = cs.letterSpacing;
+    const letterSpacing = !lsRaw || lsRaw === 'normal' ? 'normal' : fmtCssLen(lsRaw);
+    const borderRadius  = cs.borderRadius;
+    const hasRadius     = borderRadius && borderRadius !== '0px';
+    const gapVal        = cs.gap;
+    const hasGap        = gapVal && gapVal !== 'normal';
+
     const propGroups = [
       { title: 'Typography', rows: [
-        ['font-family', fontFamily],
-        ['font-size',   fmtCssLen(cs.fontSize)],
-        ['font-weight', cs.fontWeight],
-        ['color',       cs.color,            true],
-        ['line-height', fmtCssLen(cs.lineHeight)],
+        ['font-family',    fontFamily],
+        ['font-size',      fmtCssLen(cs.fontSize)],
+        ['font-weight',    cs.fontWeight],
+        ['line-height',    fmtCssLen(cs.lineHeight)],
+        ['color',          cs.color,  true],
+        ['text-align',     cs.textAlign],
+        ['letter-spacing', letterSpacing],
       ]},
       { title: 'Layout', rows: [
-        ['display',          layout],
-        ['position',         cs.position],
-        ['z-index',          cs.zIndex === 'auto' ? 'auto' : cs.zIndex],
-        ['background-color', bgOpaque ? cs.backgroundColor : 'transparent', bgOpaque],
+        ['display',   layout],
+        ['position',  cs.position],
+        ['z-index',   cs.zIndex === 'auto' ? 'auto' : cs.zIndex],
+        ['overflow',  cs.overflow],
+        ...(isFlexGrid ? [
+          ['align-items',     cs.alignItems],
+          ['justify-content', cs.justifyContent],
+          ...(hasGap ? [['gap', gapVal]] : []),
+        ] : []),
+      ]},
+      { title: 'Visual', rows: [
+        ['background', bgOpaque ? cs.backgroundColor : 'transparent', bgOpaque],
+        ['opacity',    cs.opacity],
+        ...(hasRadius ? [['border-radius', borderRadius]] : []),
+        ['cursor',     cs.cursor],
       ]},
     ];
 
