@@ -1807,11 +1807,7 @@
     const left = ROOT && ROOT.querySelector('#cp-status-left');
     const coords = ROOT && ROOT.querySelector('#cp-status-coords');
     if (!left || !coords) return;
-    const modeLabel =
-      S.mode === MODE_INSPECTOR ? 'Inspector'
-        : S.mode === MODE_GUIDES ? 'Guides'
-          : 'Cursor';
-    const parts = [`<span class="sb-mode sb-mode--${S.mode}">${modeLabel}</span>`];
+    const parts = [];
     if (S.selected.length) parts.push(`<span class="sb-sel">${S.selected.length} selected</span>`);
     left.innerHTML = parts.join('');
     coords.textContent = `x: ${Math.round(S.mouseX)} y: ${Math.round(S.mouseY)}`;
