@@ -42,14 +42,11 @@
     /** @type {{ startX:number, startBm:number }|null} */
     inspectorSplit: null,
     inspectorBmPx:  null,
-    /** 自訂 1rem 對應的 px（顯示換算用，預設 16） */
     remRootPx:      16,
-    /** `dark` | `light` — 面板與標籤配色 */
     theme:          'light',
     settingsOpen:   false,
     shortcutsOpen:  false,
     panelCollapsed: false,
-    /** ↑ 往父層時 push 的節點；↓ 優先回到最近一次離開的子節點 */
     domNavStack:    [],
   };
 
@@ -125,7 +122,6 @@
     CTX.fillText(text, mid, baselineY);
   }
 
-  /** Content-script CSS 裡 url() 會對到「頁面」網址，字型常載不到；改以擴充絕對路徑注入。 */
   function ensureMeasureToolFonts() {
     if (document.getElementById('mt-panel-font-faces')) return;
     let sansUrl;
@@ -517,6 +513,7 @@
       hdr.addEventListener('click', () => {
         S.inspectorOpen = !S.inspectorOpen;
         wrap.style.display = S.inspectorOpen ? '' : 'none';
+        applyCurrentSnapZone();
       });
     }
 
@@ -796,7 +793,6 @@
     if (S.mode === MODE_GUIDES) {
       e.preventDefault();
       e.stopPropagation();
-      // 垂直移動 → 水平線；水平移動 → 垂直線
       const type = S.moveDeltaY >= S.moveDeltaX ? 'h' : 'v';
       const pos  = type === 'h'
         ? (S.snap ? snapPoint('h', e.clientY) : e.clientY)
@@ -1305,7 +1301,6 @@
     CTX.restore();
   }
 
-  /** client 是否在視窗內；移出視窗時不與 hover 做距離比對 */
   function pointerInViewport(px = S.mouseX, py = S.mouseY) {
     const w = document.documentElement.clientWidth;
     const h = document.documentElement.clientHeight;
@@ -1384,7 +1379,6 @@
     selRects.forEach(sr => renderDistanceLines(sr, hovR));
   }
 
-  /** 多選時：任兩個已選元素之間的距離（含父子 inset） */
   function drawInterSelectedDistances() {
     if (S.selected.length < 2) return;
     const list = S.selected.filter(el => el && el.isConnected);
@@ -2031,7 +2025,6 @@
     CTX.save();
     CTX.lineWidth = 1;
 
-    // 即將新增的方向 → 實線
     CTX.strokeStyle = lineStrong;
     CTX.setLineDash([]);
     CTX.beginPath();
@@ -2042,7 +2035,6 @@
     }
     CTX.stroke();
 
-    // 另一方向 → 虛線
     CTX.setLineDash([4, 4]);
     CTX.strokeStyle = lineDim;
     CTX.beginPath();
@@ -2079,7 +2071,6 @@
     const m = /^([\d.]+)px$/.exec(s);
     return m ? Math.round(parseFloat(m[1])) : readInspectorBmPx();
   }
-  /** Box model | props 分隔條拖曳 */
   function wireInspectorSplit(body, gutter) {
     const onMove = e => {
       if (!S.inspectorSplit) return;
@@ -2333,7 +2324,6 @@
     return '#' + [m[1],m[2],m[3]].map(n => (+n).toString(16).padStart(2,'0')).join('').toUpperCase();
   }
 
-  /** 關閉時仍要能用鍵盤開啟：不掛在 attachEvents，避免 disable 時被卸載 */
   function onGlobalKeyToggle(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'M' || e.key === 'm')) {

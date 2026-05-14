@@ -113,7 +113,6 @@
   --mt-mono: 'MeasureTool Mono', 'SF Mono', ui-monospace, Consolas, monospace;
 }
 
-/* 亮色：面板／狀態列讀感較亮；頁面 overlay 標籤仍偏深以疊在任意網頁上可讀 */
 #mt-root.mt-theme-light {
   --mt-blue:         #1d4ed8;
   --mt-blue-soft:    rgba(29, 78, 216, 0.1);
@@ -320,13 +319,10 @@
   user-select:none;
   display:none;
   flex-direction:column;
-  /* 工具列 / inspector / guides 列統一最小高度，切模式不跳、也不會太扁 */
   --cp-row-min-h: 44px;
-  /* 橫列內距：toolbar / guides tools / inspector header 共用 */
   --cp-row-pad-y: 4px;
   --cp-row-pad-x-start: 8px;
   --cp-row-pad-x-end: 10px;
-  /* 面板內按鈕／列內區塊水平間距 */
   --cp-btn-gap: 6px;
 }
 
@@ -406,7 +402,6 @@
   color:var(--mt-btn-fg); cursor:pointer; flex-shrink:0;
   transition:background .12s,color .12s; border:1px solid transparent;
 }
-/* 蓋過 #mt-root * { line-height:1 }，避免 SVG 在 flex 內垂直偏移（淺色底更明顯） */
 #mt-panel .cp-toolbar .cp-btn:not(.cp-unit-btn) {
   line-height: 0;
 }
@@ -433,7 +428,7 @@
   color:var(--mt-text-dim);
   font-family:var(--mt-mono);
   white-space:nowrap;
-  text-transform:none; /* 字面 1rem= 保持小寫 rem */
+  text-transform:none;
 }
 .cp-rem-root-inp {
   box-sizing:border-box;
@@ -591,7 +586,6 @@
 .cp-sp-theme-dot--light { background:#dbe4f0; border:1px solid #94a3b8; }
 .cp-sp-theme-dot--dark  { background:#16202d; border:1px solid #374151; }
 
-/* Inspector：標題/小標改為一般大小寫（覆寫 .cp-ins-label / .bm-header / .cp-prop-title 的 uppercase） */
 #mt-panel #mt-panel-inspector .cp-ins-label,
 #mt-panel #mt-panel-inspector .bm-header,
 #mt-panel #mt-panel-inspector .cp-prop-title {
@@ -664,7 +658,6 @@
   white-space:nowrap;
 }
 
-/* Two-column body + draggable gutter — 第一欄寬度由 --ins-bm-px 控制 */
 .cp-ins-body {
   display:grid;
   grid-template-columns:minmax(200px, var(--ins-bm-px, 340px)) 5px minmax(160px, 1fr);
