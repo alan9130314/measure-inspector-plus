@@ -355,19 +355,19 @@
       updatePanel();
     });
 
-    const hidePanelBtn = iconBtn(IC.panelHide, 'Hide panel  [M]', false, tailWrap);
-    hidePanelBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      _collapseTarget = computeCollapseTarget();
-      S.panelCollapsed = true;
-      updatePanel();
-    });
-
     const settingsBtn = iconBtn(IC.settings, 'Settings', S.settingsOpen, tailWrap);
     settingsBtn.addEventListener('click', e => {
       e.stopPropagation();
       S.settingsOpen = !S.settingsOpen;
       if (S.settingsOpen) S.shortcutsOpen = false;
+      updatePanel();
+    });
+
+    const hidePanelBtn = iconBtn(IC.panelHide, 'Hide panel  [M]', false, tailWrap);
+    hidePanelBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      _collapseTarget = computeCollapseTarget();
+      S.panelCollapsed = true;
       updatePanel();
     });
 

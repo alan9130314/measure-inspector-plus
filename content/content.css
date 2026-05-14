@@ -292,7 +292,7 @@
 /* ── Toolbar status (coords / selection) ───────────────────── */
 #mt-panel #cp-toolbar-status.cp-toolbar-status {
   display:flex; align-items:center; justify-content:flex-start; gap:var(--cp-btn-gap);
-  flex:1; min-width:0; margin:0; padding:0 2px;
+  flex:1; min-width:0; margin:0; padding:0 8px;
   font-size:10px; font-family:var(--mt-mono); color:var(--mt-text-coords);
 }
 .sb-left   { display:flex; align-items:center; gap:var(--cp-btn-gap); min-height:1em; min-width:0; overflow:hidden; flex-wrap:nowrap; }
