@@ -1201,10 +1201,12 @@
         S.selected.forEach(el => drawLayoutGaps(el));
       }
       S.selected.forEach(el => drawBoxModelOverlay(el));
+      S.selected.forEach(el => drawGridLines(el));
       drawDistances();
       if (S.hovered && S.selected.length === 0 && pointerInViewport()) {
         drawLayoutGaps(S.hovered);
         drawBoxModelOverlay(S.hovered);
+        drawGridLines(S.hovered);
         drawNeighborDistances(S.hovered);
       }
     }
@@ -1608,6 +1610,105 @@
     c.lineTo(sz + 0.5, sz + 0.5);
     c.stroke();
     return CTX.createPattern(off, 'repeat');
+  }
+
+  // ── CSS Grid track lines (inspector) ─────────────────────────────────────
+  /** @param {DOMRectReadOnly|DOMRect} r */
+  function gridContentBoxFromRect(r, cs) {
+    const bl = parseFloat(cs.borderLeftWidth) || 0;
+    const br = parseFloat(cs.borderRightWidth) || 0;
+    const bt = parseFloat(cs.borderTopWidth) || 0;
+    const bb = parseFloat(cs.borderBottomWidth) || 0;
+    const pl = parseFloat(cs.paddingLeft) || 0;
+    const pr = parseFloat(cs.paddingRight) || 0;
+    const pt = parseFloat(cs.paddingTop) || 0;
+    const pb = parseFloat(cs.paddingBottom) || 0;
+    return {
+      left: r.left + bl + pl,
+      top: r.top + bt + pt,
+      right: r.right - br - pr,
+      bottom: r.bottom - bb - pb,
+    };
+  }
+
+  /** Grid item border boxes (skips #mt-root; unwraps `display: contents`) */
+  function collectGridItemRects(container) {
+    const out = [];
+    for (const ch of container.children) {
+      if (ch.closest && ch.closest('#mt-root')) continue;
+      let csCh;
+      try { csCh = window.getComputedStyle(ch); } catch (_) { continue; }
+      if (csCh.display === 'contents') {
+        for (const sub of ch.children) {
+          if (sub.closest && sub.closest('#mt-root')) continue;
+          const sr = sub.getBoundingClientRect();
+          if (sr.width > 0 && sr.height > 0) out.push(sr);
+        }
+      } else {
+        const cr = ch.getBoundingClientRect();
+        if (cr.width > 0 && cr.height > 0) out.push(cr);
+      }
+    }
+    return out;
+  }
+
+  /** Merge coordinates that differ only by subpixel noise */
+  function mergeAxisLines(sorted, eps = 0.55) {
+    const out = [];
+    for (const v of sorted) {
+      if (!out.length || Math.abs(v - out[out.length - 1]) > eps) out.push(v);
+    }
+    return out;
+  }
+
+  /** Draw column/row boundaries inferred from grid-item geometry */
+  function drawGridLines(container) {
+    if (!container || !container.isConnected || !ROOT) return;
+    let cs;
+    try { cs = window.getComputedStyle(container); } catch (_) { return; }
+    const disp = cs.display;
+    if (disp !== 'grid' && disp !== 'inline-grid') return;
+
+    const rects = collectGridItemRects(container);
+    if (!rects.length) return;
+
+    const r0 = container.getBoundingClientRect();
+    const box = gridContentBoxFromRect(r0, cs);
+    const bw = box.right - box.left;
+    const bh = box.bottom - box.top;
+    if (bw < 2 || bh < 2) return;
+
+    const xs = rects.flatMap(rr => [rr.left, rr.right]);
+    const ys = rects.flatMap(rr => [rr.top, rr.bottom]);
+    xs.push(box.left, box.right);
+    ys.push(box.top, box.bottom);
+
+    const vertXs = mergeAxisLines(xs.slice().sort((a, b) => a - b));
+    const horizYs = mergeAxisLines(ys.slice().sort((a, b) => a - b));
+
+    const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
+    const stroke = _p('--mt-violet') || '#7c5cff';
+
+    CTX.save();
+    CTX.lineWidth = 1;
+    CTX.setLineDash([3, 3]);
+    CTX.globalAlpha = 0.92;
+    CTX.strokeStyle = stroke;
+    CTX.beginPath();
+    for (const x of vertXs) {
+      if (x < box.left - 1 || x > box.right + 1) continue;
+      const xi = Math.round(x) + 0.5;
+      CTX.moveTo(xi, box.top);
+      CTX.lineTo(xi, box.bottom);
+    }
+    for (const y of horizYs) {
+      if (y < box.top - 1 || y > box.bottom + 1) continue;
+      const yi = Math.round(y) + 0.5;
+      CTX.moveTo(box.left, yi);
+      CTX.lineTo(box.right, yi);
+    }
+    CTX.stroke();
+    CTX.restore();
   }
 
   // ── Flex / Grid gap visualisation ────────────────────────────────────────
