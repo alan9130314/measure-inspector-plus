@@ -1202,6 +1202,7 @@
       }
       S.selected.forEach(el => drawBoxModelOverlay(el));
       S.selected.forEach(el => drawGridLines(el));
+      drawInterSelectedDistances();
       drawDistances();
       if (S.hovered && S.selected.length === 0 && pointerInViewport()) {
         drawLayoutGaps(S.hovered);
@@ -1255,6 +1256,32 @@
     // union-rect from swallowing C when it sits between A and B, which was the
     // cause of non-parallel reference lines.
     selRects.forEach(sr => renderDistanceLines(sr, hovR));
+  }
+
+  /** 多選時：任兩個已選元素之間的距離（含父子 inset） */
+  function drawInterSelectedDistances() {
+    if (S.selected.length < 2) return;
+    const list = S.selected.filter(el => el && el.isConnected);
+    if (list.length < 2) return;
+
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const elA = list[i];
+        const elB = list[j];
+        if (elA === elB) continue;
+        const rA = elA.getBoundingClientRect();
+        const rB = elB.getBoundingClientRect();
+        if (rA.width <= 0 || rA.height <= 0 || rB.width <= 0 || rB.height <= 0) continue;
+
+        if (elA.contains(elB)) {
+          renderContainmentLines(rA, rB);
+        } else if (elB.contains(elA)) {
+          renderContainmentLines(rB, rA);
+        } else {
+          renderDistanceLines(rA, rB);
+        }
+      }
+    }
   }
 
   // Distances from hovered element to its nearest non-ancestor neighbors
