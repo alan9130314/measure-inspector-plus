@@ -443,7 +443,7 @@
 
       // Panel snap row
       const snapSettingRow = el('div', 'cp-sp-row', sp);
-      el('span', 'cp-sp-section-label', snapSettingRow).textContent = 'PANEL SMART SNAPPING';
+      el('span', 'cp-sp-section-label', snapSettingRow).textContent = 'AUTO POSITION';
       const snapToggle = el('label', 'cp-sp-toggle', snapSettingRow);
       const snapChk = el('input', '', snapToggle);
       snapChk.type = 'checkbox';
