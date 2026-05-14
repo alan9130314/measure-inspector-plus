@@ -280,6 +280,16 @@
   pointer-events:none; display:none;
 }
 
+/* ── Panel snap ghost ───────────────────────────────────────── */
+#mt-snap-ghost {
+  position:fixed; z-index:2147483648;
+  border:2px dashed var(--mt-cyan);
+  background:var(--mt-cyan-soft);
+  border-radius:12px;
+  pointer-events:none;
+  transition:left .06s ease, top .06s ease;
+}
+
 /* ── Toolbar status (coords / selection) ───────────────────── */
 #mt-panel #cp-toolbar-status.cp-toolbar-status {
   display:flex; align-items:center; justify-content:flex-start; gap:var(--cp-btn-gap);
@@ -318,6 +328,26 @@
   --cp-row-pad-x-end: 10px;
   /* 面板內按鈕／列內區塊水平間距 */
   --cp-btn-gap: 6px;
+}
+
+/* ── Collapsed floating button ──────────────────────────────── */
+#mt-panel.is-collapsed {
+  width:auto;
+  min-width:0;
+  border-radius:12px;
+  overflow:visible;
+  background:var(--mt-surface-0);
+  border-color:var(--mt-panel-border);
+  box-shadow:0 8px 24px rgba(8, 14, 24, 0.5), 0 0 0 1px rgba(210, 225, 245, 0.08);
+  cursor:move;
+  padding:8px;
+  display:flex; align-items:center; justify-content:center;
+}
+#mt-panel.is-collapsed:hover {
+  background:var(--mt-surface-hover);
+}
+.cp-expand-icon {
+  width:28px; height:28px; display:block; border-radius:6px; pointer-events:none;
 }
 
 /* ── Handle + Toolbar ───────────────────────────────────────── */

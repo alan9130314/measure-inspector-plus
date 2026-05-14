@@ -47,6 +47,8 @@
     /** `dark` | `light` — 面板與標籤配色 */
     theme:          'light',
     settingsOpen:   false,
+    shortcutsOpen:  false,
+    panelCollapsed: false,
     /** ↑ 往父層時 push 的節點；↓ 優先回到最近一次離開的子節點 */
     domNavStack:    [],
   };
@@ -68,6 +70,14 @@
 
   // ── DOM refs ─────────────────────────────────────────────────────────────
   let ROOT, OVERLAY, CANVAS, CTX;
+  // Collapsed-panel listeners — stored so they can be removed before re-adding
+  let _collapseMousedown = null, _collapseClick = null;
+  // Target position computed just before collapsing (while full panel is still measurable)
+  let _collapseTarget = null;
+  // Zone index (0-5) the panel was at when collapsed; -1 = freely positioned
+  let _collapseZone = -1;
+  // Current snap zone while panel is fully open; -1 = freely positioned
+  let _currentSnapZone = -1;
 
   // roundRect polyfill for older Chrome
   function ctxRoundRect(ctx, x, y, w, h, r) {
@@ -214,6 +224,74 @@
   function buildControlPanel() {
     PANEL.innerHTML = '';
 
+    // ── Collapsed state: draggable floating icon ─────────────────────────────
+    // Always clean up any previously attached collapsed listeners first
+    if (_collapseMousedown) { PANEL.removeEventListener('mousedown', _collapseMousedown); _collapseMousedown = null; }
+    if (_collapseClick)     { PANEL.removeEventListener('click',     _collapseClick);     _collapseClick     = null; }
+
+    if (S.panelCollapsed) {
+      PANEL.classList.add('is-collapsed');
+      const img = document.createElement('img');
+      img.src = chrome.runtime.getURL('icons/icon48.png');
+      img.className = 'cp-expand-icon';
+      img.draggable = false;
+      img.title = 'Restore panel  [M]';
+      PANEL.appendChild(img);
+
+      let hasDragged = false;
+      _collapseMousedown = e => {
+        if (e.button !== 0) return;
+        hasDragged = false;
+        const ox = e.clientX, oy = e.clientY;
+        const r = PANEL.getBoundingClientRect();
+        let startL = r.left, startT = r.top;
+        PANEL.style.left = `${startL}px`;
+        PANEL.style.top = `${startT}px`;
+        PANEL.style.transform = 'none';
+        PANEL.style.right = 'auto';
+        PANEL.style.bottom = 'auto';
+        showSnapGhost(PANEL);
+        const move = ev => {
+          if (Math.abs(ev.clientX - ox) > 3 || Math.abs(ev.clientY - oy) > 3) hasDragged = true;
+          PANEL.style.left = `${startL + ev.clientX - ox}px`;
+          PANEL.style.top  = `${startT + ev.clientY - oy}px`;
+          updateSnapGhost(PANEL);
+        };
+        const up = () => {
+          document.removeEventListener('mousemove', move, true);
+          document.removeEventListener('mouseup', up, true);
+          removeSnapGhost();
+          if (hasDragged) snapPanelToGrid(PANEL);
+        };
+        document.addEventListener('mousemove', move, true);
+        document.addEventListener('mouseup', up, true);
+        e.preventDefault();
+      };
+      _collapseClick = () => {
+        if (hasDragged) return;
+        S.panelCollapsed = false;
+        const zone = _collapseZone;
+        _collapseZone = -1;
+        updatePanel();
+        if (zone >= 0) expandToZone(zone); else snapPanelToGrid(PANEL);
+      };
+      PANEL.addEventListener('mousedown', _collapseMousedown);
+      PANEL.addEventListener('click', _collapseClick);
+
+      // Apply pre-computed target position (must happen after content is built)
+      if (_collapseTarget) {
+        PANEL.style.transition = '';
+        PANEL.style.transform  = 'none';
+        PANEL.style.right      = 'auto';
+        PANEL.style.bottom     = 'auto';
+        PANEL.style.left = `${_collapseTarget.left}px`;
+        PANEL.style.top  = `${_collapseTarget.top}px`;
+        _collapseTarget = null;
+      }
+      return;
+    }
+    PANEL.classList.remove('is-collapsed');
+
     // ── Drag handle + toolbar ────────────────────────────────────────────────
     const handle = el('div', 'cp-handle', PANEL);
     const toolbar = el('div', 'cp-toolbar', handle);
@@ -276,8 +354,11 @@
     });
 
     const hidePanelBtn = iconBtn(IC.panelHide, 'Hide panel  [M]', false, tailWrap);
-    hidePanelBtn.addEventListener('click', () => {
-      if (PANEL) PANEL.style.display = 'none';
+    hidePanelBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      _collapseTarget = computeCollapseTarget();
+      S.panelCollapsed = true;
+      updatePanel();
     });
 
     const settingsBtn = iconBtn(IC.settings, 'Settings', S.settingsOpen, tailWrap);
@@ -496,11 +577,13 @@
 
   function updatePanel() {
     buildControlPanel();
+    if (S.panelCollapsed) return;
     const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
     if (inspected && inspected.isConnected && S.mode === MODE_INSPECTOR) {
       showInspector(inspected);
       showBoxModel(inspected);
     }
+    applyCurrentSnapZone();
   }
 
   function toggleUnit() {
@@ -537,6 +620,7 @@
   function _enable() {
     buildUI();
     S.enabled = true;
+    S.panelCollapsed = false;
     syncPageInteractionLock();
     PANEL.style.display = 'flex';
     updateStatusBar();
@@ -771,7 +855,17 @@
         break;
       case 'm': case 'M':
         if (!e.ctrlKey && !e.metaKey) {
-          PANEL.style.display = PANEL.style.display === 'none' ? 'flex' : 'none';
+          if (S.panelCollapsed) {
+            S.panelCollapsed = false;
+            const zone = _collapseZone;
+            _collapseZone = -1;
+            updatePanel();
+            if (zone >= 0) expandToZone(zone); else snapPanelToGrid(PANEL);
+          } else {
+            _collapseTarget = computeCollapseTarget();
+            S.panelCollapsed = true;
+            updatePanel();
+          }
           e.preventDefault();
         }
         break;
@@ -1032,6 +1126,7 @@
 
     // ── Box model column ───────────────────────────────────────────────────
     showBoxModel(elem);
+    applyCurrentSnapZone();
   }
 
   // ── Box Model ─────────────────────────────────────────────────────────────
@@ -2016,12 +2111,150 @@
     });
   }
 
+  // ── Panel snap-to-grid ────────────────────────────────────────────────────
+  const SNAP_MARGIN = 16;
+
+  function calcSnapPositions(panel) {
+    const r  = panel.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const pw = r.width,          ph = r.height;
+    const cx = (vw - pw) / 2;
+    const rx = vw - pw - SNAP_MARGIN, by = vh - ph - SNAP_MARGIN;
+    return [
+      [SNAP_MARGIN, SNAP_MARGIN], [cx, SNAP_MARGIN], [rx, SNAP_MARGIN],
+      [SNAP_MARGIN, by],          [cx, by],           [rx, by],
+    ];
+  }
+
+  function nearestSnapZone(panel) {
+    const r = panel.getBoundingClientRect();
+    const snaps = calcSnapPositions(panel);
+    let bestIdx = 0, bestD = Infinity;
+    for (let i = 0; i < snaps.length; i++) {
+      const d = Math.hypot(snaps[i][0] - r.left, snaps[i][1] - r.top);
+      if (d < bestD) { bestD = d; bestIdx = i; }
+    }
+    return bestIdx;
+  }
+
+  function nearestSnap(panel) {
+    return calcSnapPositions(panel)[nearestSnapZone(panel)];
+  }
+
+  function snapPanelToGrid(panel) {
+    const r = panel.getBoundingClientRect();
+    // Anchor current rendered position as inline styles so transition has a start point
+    panel.style.transition = '';
+    panel.style.transform  = 'none';
+    panel.style.right      = 'auto';
+    panel.style.bottom     = 'auto';
+    panel.style.left = `${r.left}px`;
+    panel.style.top  = `${r.top}px`;
+    panel.offsetLeft; // force reflow to commit anchor before applying transition
+    _currentSnapZone = nearestSnapZone(panel);
+    const [sl, st] = calcSnapPositions(panel)[_currentSnapZone];
+    panel.style.transition = 'left .18s cubic-bezier(0.25,0.46,0.45,0.94), top .18s cubic-bezier(0.25,0.46,0.45,0.94)';
+    panel.style.left = `${sl}px`;
+    panel.style.top  = `${st}px`;
+    setTimeout(() => { panel.style.transition = ''; }, 200);
+  }
+
+  // Returns the index (0-5) of the snap zone the panel is currently at, or -1 if free
+  function findSnapZone(panel) {
+    const snaps = calcSnapPositions(panel);
+    const r = panel.getBoundingClientRect();
+    const TOLERANCE = 6;
+    for (let i = 0; i < snaps.length; i++) {
+      if (Math.abs(r.left - snaps[i][0]) < TOLERANCE && Math.abs(r.top - snaps[i][1]) < TOLERANCE) return i;
+    }
+    return -1;
+  }
+
+  // Computes collapsed-button target position. Must be called BEFORE innerHTML is cleared.
+  function computeCollapseTarget() {
+    const CS = 44; // collapsed button size
+    const M  = SNAP_MARGIN;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const cx = (vw - CS) / 2;
+    const rx = vw - CS - M, by = vh - CS - M;
+    const collapsedSnaps = [
+      [M,  M],  [cx, M],  [rx, M],
+      [M,  by], [cx, by], [rx, by],
+    ];
+    const zone = findSnapZone(PANEL);
+    _collapseZone = zone; // remember for expand
+    if (zone >= 0) {
+      return { left: collapsedSnaps[zone][0], top: collapsedSnaps[zone][1] };
+    }
+    const r = PANEL.getBoundingClientRect();
+    return { left: r.left + r.width / 2 - CS / 2, top: r.top + r.height / 2 - CS / 2 };
+  }
+
+  // Expand panel to a specific zone (bypasses geometric nearest-snap to fix TC/BC misdetection)
+  function expandToZone(zone) {
+    _currentSnapZone = zone;
+    const snaps = calcSnapPositions(PANEL);
+    const [sl, st] = snaps[zone];
+    const r = PANEL.getBoundingClientRect();
+    PANEL.style.transition = '';
+    PANEL.style.transform  = 'none';
+    PANEL.style.right      = 'auto';
+    PANEL.style.bottom     = 'auto';
+    PANEL.style.left = `${r.left}px`;
+    PANEL.style.top  = `${r.top}px`;
+    PANEL.offsetLeft;
+    PANEL.style.transition = 'left .18s cubic-bezier(0.25,0.46,0.45,0.94), top .18s cubic-bezier(0.25,0.46,0.45,0.94)';
+    PANEL.style.left = `${sl}px`;
+    PANEL.style.top  = `${st}px`;
+    setTimeout(() => { PANEL.style.transition = ''; }, 200);
+  }
+
+  // Re-apply current snap zone without animation — called after content changes panel height
+  function applyCurrentSnapZone() {
+    if (_currentSnapZone < 0 || S.panelCollapsed) return;
+    const snaps = calcSnapPositions(PANEL);
+    const [sl, st] = snaps[_currentSnapZone];
+    PANEL.style.transition = '';
+    PANEL.style.transform  = 'none';
+    PANEL.style.right      = 'auto';
+    PANEL.style.bottom     = 'auto';
+    PANEL.style.left = `${sl}px`;
+    PANEL.style.top  = `${st}px`;
+  }
+
+  function showSnapGhost(panel) {
+    let ghost = document.getElementById('mt-snap-ghost');
+    if (!ghost) {
+      ghost = document.createElement('div');
+      ghost.id = 'mt-snap-ghost';
+      ROOT.appendChild(ghost);
+    }
+    const r = panel.getBoundingClientRect();
+    ghost.style.width  = `${r.width}px`;
+    ghost.style.height = `${r.height}px`;
+    return ghost;
+  }
+
+  function updateSnapGhost(panel) {
+    const ghost = document.getElementById('mt-snap-ghost');
+    if (!ghost) return;
+    const [sl, st] = nearestSnap(panel);
+    ghost.style.left = `${sl}px`;
+    ghost.style.top  = `${st}px`;
+  }
+
+  function removeSnapGhost() {
+    const ghost = document.getElementById('mt-snap-ghost');
+    if (ghost) ghost.remove();
+  }
+
   // ── Draggable panels ──────────────────────────────────────────────────────
   function makeDraggable(panel, handle) {
     let ox, oy, startL, startT;
     handle.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
       if (e.target.closest('input, textarea, select, .cp-btn, .cp-unit-btn, .cp-kbd, .cp-mode-switch, a, button')) return;
+      _currentSnapZone = -1;
       ox = e.clientX; oy = e.clientY;
       const r = panel.getBoundingClientRect();
       startL = r.left; startT = r.top;
@@ -2030,13 +2263,17 @@
       panel.style.transform = 'none';
       panel.style.right = 'auto';
       panel.style.bottom = 'auto';
+      showSnapGhost(panel);
       const move = ev => {
         panel.style.left = `${startL + ev.clientX - ox}px`;
         panel.style.top  = `${startT + ev.clientY - oy}px`;
+        updateSnapGhost(panel);
       };
       const up = () => {
         document.removeEventListener('mousemove', move, true);
         document.removeEventListener('mouseup',   up,   true);
+        removeSnapGhost();
+        snapPanelToGrid(panel);
       };
       document.addEventListener('mousemove', move, true);
       document.addEventListener('mouseup',   up,   true);

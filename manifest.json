@@ -30,7 +30,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["fonts/inter-latin.woff2", "fonts/jetbrains-mono-latin.woff2"],
+      "resources": ["fonts/inter-latin.woff2", "fonts/jetbrains-mono-latin.woff2", "icons/icon16.png", "icons/icon48.png", "icons/icon128.png"],
       "matches": ["<all_urls>"]
     }
   ],
