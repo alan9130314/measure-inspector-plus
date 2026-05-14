@@ -63,15 +63,15 @@
   --mt-ov-bm-content-label-fg: #e8f4ff;
 
   /* Panel + status bar */
-  --mt-surface-0:    #16202d;
-  --mt-surface-1:    #1a2330;
-  --mt-surface-2:    #1b2632;
-  --mt-surface-3:    #1c2734;
-  --mt-surface-hover:#223143;
-  --mt-footer-bg:    #141d28;
+  --mt-surface-0:    rgba(11, 17, 27, 0.78);
+  --mt-surface-1:    rgba(14, 21, 33, 0.74);
+  --mt-surface-2:    rgba(20, 28, 42, 0.68);
+  --mt-surface-3:    rgba(16, 24, 38, 0.80);
+  --mt-surface-hover:rgba(26, 38, 56, 0.76);
+  --mt-footer-bg:    rgba(8,  13, 22, 0.72);
 
-  --mt-panel-border: #374151;
-  --mt-panel-outer:  #5f6f84;
+  --mt-panel-border: rgba(80, 100, 128, 0.45);
+  --mt-panel-outer:  rgba(100, 124, 160, 0.55);
   --mt-sep:          #3b4553;
   --mt-border-ui:    #445164;
   --mt-border-hover: #536174;
@@ -166,19 +166,19 @@
   --mt-ov-bm-border-label-bg:  rgba(30, 58, 138, 0.92);
   --mt-ov-bm-border-label-fg:  #eff6ff;
 
-  --mt-surface-0:    #e2e8f0;
-  --mt-surface-1:    #f1f5f9;
-  --mt-surface-2:    #e8edf4;
-  --mt-surface-3:    #dfe7f1;
-  --mt-surface-hover:#d8e2ee;
-  --mt-footer-bg:    #dbe4f0;
+  --mt-surface-0:    rgba(224, 222, 232, 0.70);
+  --mt-surface-1:    rgba(242, 240, 248, 0.66);
+  --mt-surface-2:    rgba(232, 230, 240, 0.66);
+  --mt-surface-3:    rgba(216, 214, 226, 0.74);
+  --mt-surface-hover:rgba(206, 204, 218, 0.72);
+  --mt-footer-bg:    rgba(208, 206, 218, 0.68);
 
-  --mt-panel-border: #b8c4d4;
-  --mt-panel-outer:  #8b9aad;
-  --mt-sep:          #c5cedc;
-  --mt-border-ui:    #a8b6ca;
-  --mt-border-hover: #94a3b8;
-  --mt-footer-bd:    #b8c4d4;
+  --mt-panel-border: rgba(152, 144, 172, 0.44);
+  --mt-panel-outer:  rgba(130, 122, 152, 0.52);
+  --mt-sep:          rgba(172, 164, 192, 0.40);
+  --mt-border-ui:    rgba(158, 150, 178, 0.50);
+  --mt-border-hover: rgba(138, 130, 160, 0.55);
+  --mt-footer-bd:    rgba(160, 152, 180, 0.38);
 
   --mt-text-bright:  #0f172a;
   --mt-text-primary: #1e293b;
@@ -216,7 +216,9 @@
 }
 
 #mt-root.mt-theme-light #mt-panel {
-  box-shadow:0 14px 36px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  backdrop-filter:blur(22px) saturate(1.2) brightness(1.05);
+  -webkit-backdrop-filter:blur(22px) saturate(1.2) brightness(1.05);
+  box-shadow:0 14px 36px rgba(30, 20, 50, 0.12), 0 0 0 1px rgba(130, 118, 158, 0.22);
 }
 
 #mt-root.mt-theme-light .mt-guide-label {
@@ -314,6 +316,8 @@
   border:1px solid var(--mt-panel-outer);
   border-radius:12px;
   overflow:hidden;
+  backdrop-filter:blur(22px) saturate(1.6) brightness(0.95);
+  -webkit-backdrop-filter:blur(22px) saturate(1.6) brightness(0.95);
   box-shadow:0 14px 40px rgba(8, 14, 24, 0.45), 0 0 0 1px rgba(210, 225, 245, 0.06);
   pointer-events:auto;
   user-select:none;
@@ -334,7 +338,9 @@
   overflow:visible;
   background:var(--mt-surface-0);
   border-color:var(--mt-panel-border);
-  box-shadow:0 8px 24px rgba(8, 14, 24, 0.5), 0 0 0 1px rgba(210, 225, 245, 0.08);
+  backdrop-filter:blur(18px) saturate(1.5);
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);
+  box-shadow:0 8px 24px rgba(8, 14, 24, 0.4), 0 0 0 1px rgba(210, 225, 245, 0.10);
   cursor:move;
   padding:8px;
   display:flex; align-items:center; justify-content:center;
