@@ -64,7 +64,7 @@
     sun:     `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.4" stroke="currentColor" stroke-width="1.35"/><path d="M7 1.5v1.3M7 11.2v1.3M1.5 7h1.3M11.2 7h1.3M2.9 2.9l.9.9M10.2 10.2l.9.9M11.1 2.9l-.9.9M3.8 10.2l-.9.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
     moon:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.9 2.5a4.7 4.7 0 1 0 2.6 8.6 4.2 4.2 0 1 1-2.6-8.6z" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     panelHide: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2.5" width="10" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.35"/><path d="M4.2 11.25h5.6M7 9v2.25" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/><path d="M5.2 7.35L7 9.15l1.8-1.8" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    settings:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.7 1.9h2.6l.4 1.5 1.4.6 1.4-.7 1.3 2.3-1 .9.1 1.6 1.2.8-.9 2.4-1.6-.1-1.2 1-.1 1.6H5.8l-.5-1.5-1.4-.6-1.4.7-1.3-2.3 1-.9-.1-1.6-1.2-.8.9-2.4 1.6.1 1.2-1 .1-1.6z" stroke="currentColor" stroke-width="1.05" stroke-linejoin="round"/><circle cx="7" cy="7" r="1.9" stroke="currentColor" stroke-width="1.2"/></svg>`,
+    settings:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M6.09 2.9L6.06 1.68L7.94 1.68L7.91 2.9L9.26 3.46L10.1 2.58L11.42 3.9L10.54 4.74L11.1 6.09L12.32 6.06L12.32 7.94L11.1 7.91L10.54 9.26L11.42 10.1L10.1 11.42L9.26 10.54L7.91 11.1L7.94 12.32L6.06 12.32L6.09 11.1L4.74 10.54L3.9 11.42L2.58 10.1L3.46 9.26L2.9 7.91L1.68 7.94L1.68 6.06L2.9 6.09L3.46 4.74L2.58 3.9L3.9 2.58L4.74 3.46Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.1"/></svg>`,
   };
 
   // ── DOM refs ─────────────────────────────────────────────────────────────
@@ -670,12 +670,31 @@
   }
 
   // ── Event Wiring ──────────────────────────────────────────────────────────
+  function onResize() {
+    if (!S.enabled || !PANEL) return;
+    if (S.panelCollapsed) {
+      const r  = PANEL.getBoundingClientRect();
+      const cw = document.documentElement.clientWidth;
+      const vh = window.innerHeight;
+      const cl = Math.min(Math.max(r.left, SNAP_MARGIN), cw - r.width  - SNAP_MARGIN);
+      const ct = Math.min(Math.max(r.top,  SNAP_MARGIN), vh - r.height - SNAP_MARGIN);
+      PANEL.style.transition = '';
+      PANEL.style.transform  = 'none';
+      PANEL.style.right = 'auto'; PANEL.style.bottom = 'auto';
+      PANEL.style.left = `${cl}px`; PANEL.style.top = `${ct}px`;
+      return;
+    }
+    applyCurrentSnapZone();
+    if (!S.panelSnap || _currentSnapZone < 0) clampPanelToViewport();
+  }
+
   function attachEvents() {
     document.addEventListener('mousemove', onMouseMove, true);
     document.addEventListener('mousedown', onMouseDown, true);
     document.addEventListener('mouseup',   onMouseUp,   true);
     document.addEventListener('click',     onClick,     true);
     document.addEventListener('keydown',   onKeyDown,   true);
+    window.addEventListener('resize', onResize);
   }
 
   function detachEvents() {
@@ -684,6 +703,7 @@
     document.removeEventListener('mouseup',   onMouseUp,   true);
     document.removeEventListener('click',     onClick,     true);
     document.removeEventListener('keydown',   onKeyDown,   true);
+    window.removeEventListener('resize', onResize);
   }
 
   // ── Mouse Events ──────────────────────────────────────────────────────────
@@ -2168,12 +2188,26 @@
   function calcSnapPositions(panel) {
     const r  = panel.getBoundingClientRect();
     const vw = window.innerWidth, vh = window.innerHeight;
-    const pw = r.width,          ph = r.height;
-    const cx = (vw - pw) / 2;
-    const rx = vw - pw - SNAP_MARGIN, by = vh - ph - SNAP_MARGIN;
+    const cw = document.documentElement.clientWidth; // excludes scrollbar
+    const pw = r.width, ph = r.height;
+    const rx = cw - pw - SNAP_MARGIN, by = vh - ph - SNAP_MARGIN;
+    if (vw >= 1280) {
+      const cx = (cw - pw) / 2;
+      return [
+        [SNAP_MARGIN, SNAP_MARGIN], [cx, SNAP_MARGIN], [rx, SNAP_MARGIN],
+        [SNAP_MARGIN, by],          [cx, by],           [rx, by],
+      ];
+    }
+    if (vw >= 768) {
+      return [
+        [SNAP_MARGIN, SNAP_MARGIN], [rx, SNAP_MARGIN],
+        [SNAP_MARGIN, by],          [rx, by],
+      ];
+    }
+    const cx = (cw - pw) / 2;
     return [
-      [SNAP_MARGIN, SNAP_MARGIN], [cx, SNAP_MARGIN], [rx, SNAP_MARGIN],
-      [SNAP_MARGIN, by],          [cx, by],           [rx, by],
+      [cx, SNAP_MARGIN],
+      [cx, by],
     ];
   }
 
@@ -2226,12 +2260,27 @@
     const CS = 44; // collapsed button size
     const M  = SNAP_MARGIN;
     const vw = window.innerWidth, vh = window.innerHeight;
-    const cx = (vw - CS) / 2;
-    const rx = vw - CS - M, by = vh - CS - M;
-    const collapsedSnaps = [
-      [M,  M],  [cx, M],  [rx, M],
-      [M,  by], [cx, by], [rx, by],
-    ];
+    const cw = document.documentElement.clientWidth; // excludes scrollbar
+    const rx = cw - CS - M, by = vh - CS - M;
+    let collapsedSnaps;
+    if (vw >= 1280) {
+      const cx = (cw - CS) / 2;
+      collapsedSnaps = [
+        [M, M], [cx, M], [rx, M],
+        [M, by], [cx, by], [rx, by],
+      ];
+    } else if (vw >= 768) {
+      collapsedSnaps = [
+        [M, M], [rx, M],
+        [M, by], [rx, by],
+      ];
+    } else {
+      const cx = (cw - CS) / 2;
+      collapsedSnaps = [
+        [cx, M],
+        [cx, by],
+      ];
+    }
     const zone = findSnapZone(PANEL);
     _collapseZone = zone; // remember for expand
     if (zone >= 0) {
@@ -2279,8 +2328,9 @@
 
   function clampPanelToViewport() {
     const r  = PANEL.getBoundingClientRect();
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const cl = Math.min(Math.max(r.left, SNAP_MARGIN), vw - r.width  - SNAP_MARGIN);
+    const cw = document.documentElement.clientWidth;
+    const vh = window.innerHeight;
+    const cl = Math.min(Math.max(r.left, SNAP_MARGIN), cw - r.width  - SNAP_MARGIN);
     const ct = Math.min(Math.max(r.top,  SNAP_MARGIN), vh - r.height - SNAP_MARGIN);
     if (Math.round(cl) === Math.round(r.left) && Math.round(ct) === Math.round(r.top)) return;
     PANEL.style.transition = '';
