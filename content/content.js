@@ -149,7 +149,8 @@
   }
 
   let PANEL, MARQUEE;
-  let distLabels = [];
+  let distLabels  = [];
+  let labelSlots  = []; // { cx, cy } — shared occupancy tracker for all canvas/DOM labels
 
   // ── Build UI ─────────────────────────────────────────────────────────────
   function applyTheme() {
@@ -1294,7 +1295,30 @@
   // ── Canvas Drawing ────────────────────────────────────────────────────────
   function clearDistLabels() {
     distLabels.forEach(l => l.remove());
-    distLabels = [];
+    distLabels  = [];
+    labelSlots  = [];
+  }
+
+  function registerLabelSlot(cx, cy) {
+    labelSlots.push({ cx, cy });
+  }
+
+  function findFreeLabelSlot(cx, cy, axis) {
+    const OVL_W = 40, OVL_H = 16, STEP = METRIC_CHIP_H + 4;
+    const hit = (px, py) => labelSlots.some(s =>
+      Math.abs(px - s.cx) < OVL_W && Math.abs(py - s.cy) < OVL_H
+    );
+    if (!hit(cx, cy)) return { cx, cy };
+    for (let i = 1; i <= 6; i++) {
+      const off = i * STEP;
+      const tries = axis === 'h'
+        ? [{ cx, cy: cy - off }, { cx, cy: cy + off }]
+        : [{ cx: cx + off, cy }, { cx: cx - off, cy }];
+      for (const t of tries) {
+        if (!hit(t.cx, t.cy)) return t;
+      }
+    }
+    return { cx, cy };
   }
 
   // ── Box Model Canvas Overlay (DevTools style) ─────────────────────────────
@@ -1359,34 +1383,108 @@
       CTX.fillRect(contentBox.l, contentBox.t, cw, ch);
     }
 
-    // ── Labels (canvas only — same drawMetricChip as distance labels) ─────
-    const drawLabel = (val, x, y, bgColor, textColor) => {
-      if (Math.abs(val) < 0.5) return;
-      drawMetricChip(x, y, fmtU(val), bgColor, textColor);
-    };
-
+    // ── Labels: try in-zone; overflow → floating callout ─────────────────
     const midX = (borderBox.l + borderBox.r) / 2;
     const midY = (borderBox.t + borderBox.b) / 2;
+    const pmx  = (paddingBox.l + paddingBox.r) / 2;
+    const pmy  = (paddingBox.t + paddingBox.b) / 2;
+    const bw   = borderBox.r  - borderBox.l;
+    const bh   = borderBox.b  - borderBox.t;
+    const pw   = paddingBox.r - paddingBox.l;
+    const ph   = paddingBox.b - paddingBox.t;
 
-    // Margin labels
-    if (mt > 0) drawLabel(mt, midX, marginBox.t + mt/2,  L_M_BG, L_M_FG);
-    if (mb > 0) drawLabel(mb, midX, borderBox.b + mb/2,  L_M_BG, L_M_FG);
-    if (ml > 0) drawLabel(ml, marginBox.l + ml/2, midY,  L_M_BG, L_M_FG);
-    if (mr > 0) drawLabel(mr, borderBox.r + mr/2, midY,  L_M_BG, L_M_FG);
+    const OVF_MIN_H = METRIC_CHIP_H + 6;
+    const OVF_MIN_W = 36;
+    const ovfItems  = [];
 
-    // Padding labels
-    const pmx = (paddingBox.l + paddingBox.r) / 2;
-    const pmy = (paddingBox.t + paddingBox.b) / 2;
-    if (pt > 0) drawLabel(pt, pmx, paddingBox.t + pt/2,  L_P_BG, L_P_FG);
-    if (pb > 0) drawLabel(pb, pmx, contentBox.b + pb/2,  L_P_BG, L_P_FG);
-    if (pl > 0) drawLabel(pl, paddingBox.l + pl/2, pmy,  L_P_BG, L_P_FG);
-    if (pr > 0) drawLabel(pr, contentBox.r + pr/2, pmy,  L_P_BG, L_P_FG);
+    const tryLabel = (val, dx, dy, bg, fg, key, spanH, spanW) => {
+      if (Math.abs(val) < 0.5) return;
+      if (spanH >= OVF_MIN_H && spanW >= OVF_MIN_W) {
+        drawMetricChip(dx, dy, fmtU(val), bg, fg);
+        registerLabelSlot(dx, dy);
+      } else {
+        ovfItems.push({ text: `${key} ${fmtU(val)}`, bg, fg });
+      }
+    };
 
-    // Content size label (slightly taller chip, horizontal padding 4+4 ≈ old +8)
-    if (cw > 30 && ch > 16) {
-      const label = `${fmtU(cw)} × ${fmtU(ch)}`;
-      drawMetricChip(contentBox.l + cw / 2, contentBox.t + ch / 2, label, L_C_BG, L_C_FG, 18, 4, 4);
+    // Margin
+    tryLabel(mt, midX, marginBox.t + mt/2, L_M_BG, L_M_FG, 'mt', mt, bw);
+    tryLabel(mb, midX, borderBox.b + mb/2, L_M_BG, L_M_FG, 'mb', mb, bw);
+    tryLabel(ml, marginBox.l + ml/2, midY, L_M_BG, L_M_FG, 'ml', bh, ml);
+    tryLabel(mr, borderBox.r + mr/2, midY, L_M_BG, L_M_FG, 'mr', bh, mr);
+
+    // Padding
+    tryLabel(pt, pmx, paddingBox.t + pt/2, L_P_BG, L_P_FG, 'pt', pt, pw);
+    tryLabel(pb, pmx, contentBox.b + pb/2, L_P_BG, L_P_FG, 'pb', pb, pw);
+    tryLabel(pl, paddingBox.l + pl/2, pmy,  L_P_BG, L_P_FG, 'pl', ph, pl);
+    tryLabel(pr, contentBox.r + pr/2, pmy,  L_P_BG, L_P_FG, 'pr', ph, pr);
+
+    // Content size
+    if (cw > 0 && ch > 0) {
+      const sizeLabel = `${fmtU(cw)} × ${fmtU(ch)}`;
+      if (cw >= 30 && ch >= 16) {
+        const scx = contentBox.l + cw/2, scy = contentBox.t + ch/2;
+        drawMetricChip(scx, scy, sizeLabel, L_C_BG, L_C_FG, 18, 4, 4);
+        registerLabelSlot(scx, scy);
+      } else {
+        ovfItems.push({ text: sizeLabel, bg: L_C_BG, fg: L_C_FG });
+      }
     }
+
+    CTX.restore();
+    if (ovfItems.length > 0) drawBmCallout(ovfItems, marginBox);
+  }
+
+  function drawBmCallout(items, marginBox) {
+    const CHIP_H  = 14;
+    const ROW_GAP = 3;
+    const PAD_Y   = 5;
+    const PAD_X   = 8;
+    const MARGIN  = 14;
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
+
+    const elCX = (marginBox.l + marginBox.r) / 2;
+    const elCY = (marginBox.t + marginBox.b) / 2;
+
+    const family = getComputedStyle(ROOT).getPropertyValue('--mt-mono').trim();
+    CTX.save();
+    CTX.font = `500 10px ${family}`;
+    const calloutW = Math.ceil(Math.max(...items.map(it => CTX.measureText(it.text).width))) + PAD_X * 2;
+    const calloutH = items.length * (CHIP_H + ROW_GAP) - ROW_GAP + PAD_Y * 2;
+
+    let ax, ay;
+    if (marginBox.r + calloutW + MARGIN < vw) {
+      ax = marginBox.r + MARGIN;
+      ay = Math.max(8, Math.min(vh - calloutH - 8, elCY - calloutH / 2));
+    } else if (marginBox.l - calloutW - MARGIN > 0) {
+      ax = marginBox.l - calloutW - MARGIN;
+      ay = Math.max(8, Math.min(vh - calloutH - 8, elCY - calloutH / 2));
+    } else if (marginBox.b + calloutH + MARGIN < vh) {
+      ax = Math.max(8, Math.min(vw - calloutW - 8, elCX - calloutW / 2));
+      ay = marginBox.b + MARGIN;
+    } else {
+      ax = Math.max(8, Math.min(vw - calloutW - 8, elCX - calloutW / 2));
+      ay = Math.max(8, marginBox.t - calloutH - MARGIN);
+    }
+
+    const calloutCX = ax + calloutW / 2;
+    const calloutCY = ay + calloutH / 2;
+
+    CTX.setLineDash([3, 4]);
+    CTX.strokeStyle = 'rgba(160, 160, 190, 0.40)';
+    CTX.lineWidth = 1;
+    CTX.beginPath();
+    CTX.moveTo(elCX, elCY);
+    CTX.lineTo(calloutCX, calloutCY);
+    CTX.stroke();
+    CTX.setLineDash([]);
+
+    items.forEach(({ text, bg, fg }, i) => {
+      const chipCY = ay + PAD_Y + i * (CHIP_H + ROW_GAP) + CHIP_H / 2;
+      drawMetricChip(calloutCX, chipCY, text, bg, fg, CHIP_H, PAD_X, 3);
+      registerLabelSlot(calloutCX, chipCY);
+    });
 
     CTX.restore();
   }
@@ -1704,9 +1802,9 @@
   function addDistLabel(dist, x, y, axis, chipKind = 'distance') {
     const vw  = document.documentElement.clientWidth;
     const vh  = document.documentElement.clientHeight;
-    const PAD = 28; // keep label clear of viewport edges (accounts for ~half label size)
+    const PAD = 28;
     const lx = Math.round(Math.max(PAD, Math.min(vw - PAD, x)));
-    const ly = Math.round(Math.max(PAD, Math.min(vh - 30, y))); // 30 = status bar + margin
+    const ly = Math.round(Math.max(PAD, Math.min(vh - 30, y)));
     const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
     const bg = chipKind === 'guide'
       ? (_p('--mt-label-guide-metric-bg') || _p('--mt-label-orange-bg') || '#6a1a12')
@@ -1714,7 +1812,9 @@
     const fg = chipKind === 'guide'
       ? (_p('--mt-label-guide-metric-fg') || _p('--mt-label-orange-fg') || '#fff8f6')
       : (_p('--mt-label-orange-fg') || '#ffe3b3');
-    drawMetricChip(lx, ly, fmtU(dist), bg, fg);
+    const { cx: fx, cy: fy } = findFreeLabelSlot(lx, ly, axis);
+    drawMetricChip(fx, fy, fmtU(dist), bg, fg);
+    registerLabelSlot(fx, fy);
   }
 
   // ── Guide rendering ───────────────────────────────────────────────────────
@@ -2147,40 +2247,44 @@
     div.className = (axis === 'h' ? 'mt-gap-label mt-gap-label-h' : 'mt-gap-label mt-gap-label-v') + kindCls;
     div.textContent = fmtU(size);
 
+    let slotCX, slotCY;
     if (axis === 'h') {
-      // Column gap strip: full container height, gap width
       const lx     = Math.max(28, Math.min(vw - 28, (x1 + x2) / 2));
       const stripH = y2 - y1;
       if (stripH < 40) {
-        // container too short — float label above it
+        const top = Math.max(4, y1 - 4);
         div.style.left      = `${lx}px`;
-        div.style.top       = `${Math.max(4, y1 - 4)}px`;
+        div.style.top       = `${top}px`;
         div.style.transform = 'translate(-50%, -100%)';
+        slotCX = lx; slotCY = top - 9;
       } else {
         const ly = Math.max(4, Math.min(vh - 24, y1));
         div.style.left      = `${lx}px`;
         div.style.top       = `${ly}px`;
         div.style.transform = 'translate(-50%, 4px)';
+        slotCX = lx; slotCY = ly + 13;
       }
     } else {
-      // Row gap strip: gap height, full container width
       const ly     = Math.max(4, Math.min(vh - 20, (y1 + y2) / 2));
       const stripH = y2 - y1;
       if (stripH < 20) {
-        // gap too narrow — float label to the left of the container
-        div.style.left      = `${Math.max(4, x1 - 4)}px`;
+        const left = Math.max(4, x1 - 4);
+        div.style.left      = `${left}px`;
         div.style.top       = `${ly}px`;
         div.style.transform = 'translate(-100%, -50%)';
+        slotCX = left - 30; slotCY = ly;
       } else {
         const lx = Math.max(4, Math.min(vw - 60, x1));
         div.style.left      = `${lx}px`;
         div.style.top       = `${ly}px`;
         div.style.transform = 'translate(4px, -50%)';
+        slotCX = lx + 30; slotCY = ly;
       }
     }
 
     ROOT.appendChild(div);
-    distLabels.push(div); // cleaned up by clearDistLabels() on each redraw
+    distLabels.push(div);
+    registerLabelSlot(slotCX, slotCY);
   }
 
   function drawSnapCrosshair() {
