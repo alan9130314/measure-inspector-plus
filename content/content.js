@@ -1397,9 +1397,16 @@
     const OVF_MIN_W = 36;
     const ovfItems  = [];
 
+    // Labels inside the borderBox cover the element itself — redirect to callout
+    // when the element is small enough that it matters.
+    const smallEl     = bw < 80 || bh < 60;
+    const inBorderBox = (dx, dy) =>
+      dx > borderBox.l && dx < borderBox.r && dy > borderBox.t && dy < borderBox.b;
+
     const tryLabel = (val, dx, dy, bg, fg, key, spanH, spanW) => {
       if (Math.abs(val) < 0.5) return;
-      if (spanH >= OVF_MIN_H && spanW >= OVF_MIN_W) {
+      const fitsInZone = spanH >= OVF_MIN_H && spanW >= OVF_MIN_W;
+      if (fitsInZone && !(smallEl && inBorderBox(dx, dy))) {
         drawMetricChip(dx, dy, fmtU(val), bg, fg);
         registerLabelSlot(dx, dy);
       } else {
@@ -1407,22 +1414,22 @@
       }
     };
 
-    // Margin
+    // Margin (positions outside borderBox — unaffected by smallEl guard)
     tryLabel(mt, midX, marginBox.t + mt/2, L_M_BG, L_M_FG, 'mt', mt, bw);
     tryLabel(mb, midX, borderBox.b + mb/2, L_M_BG, L_M_FG, 'mb', mb, bw);
     tryLabel(ml, marginBox.l + ml/2, midY, L_M_BG, L_M_FG, 'ml', bh, ml);
     tryLabel(mr, borderBox.r + mr/2, midY, L_M_BG, L_M_FG, 'mr', bh, mr);
 
-    // Padding
+    // Padding (positions inside borderBox — redirected to callout on small elements)
     tryLabel(pt, pmx, paddingBox.t + pt/2, L_P_BG, L_P_FG, 'pt', pt, pw);
     tryLabel(pb, pmx, contentBox.b + pb/2, L_P_BG, L_P_FG, 'pb', pb, pw);
     tryLabel(pl, paddingBox.l + pl/2, pmy,  L_P_BG, L_P_FG, 'pl', ph, pl);
     tryLabel(pr, contentBox.r + pr/2, pmy,  L_P_BG, L_P_FG, 'pr', ph, pr);
 
-    // Content size
+    // Content size (always inside borderBox)
     if (cw > 0 && ch > 0) {
       const sizeLabel = `${fmtU(cw)} × ${fmtU(ch)}`;
-      if (cw >= 30 && ch >= 16) {
+      if (!smallEl && cw >= 30 && ch >= 16) {
         const scx = contentBox.l + cw/2, scy = contentBox.t + ch/2;
         drawMetricChip(scx, scy, sizeLabel, L_C_BG, L_C_FG, 18, 4, 4);
         registerLabelSlot(scx, scy);
