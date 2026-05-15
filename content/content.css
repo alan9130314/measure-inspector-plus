@@ -827,7 +827,7 @@
 }
 
 /* ── Properties column ──────────────────────────────────────── */
-.cp-props { padding:10px;  min-width:0; min-height:0; box-sizing:border-box; background:var(--mt-surface-1); flex:1; }
+.cp-props { padding:10px;  min-width:0; min-height:0; box-sizing:border-box; flex:1; }
 .cp-props {
   scrollbar-width: thin;
   scrollbar-color: var(--mt-border-ui) var(--mt-surface-2);
