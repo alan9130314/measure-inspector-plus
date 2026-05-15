@@ -869,12 +869,12 @@
     switch (e.key) {
       case '1':
         S.mode = MODE_INSPECTOR;
-        updatePanel(); updateStatusBar();
+        updatePanel(); updateStatusBar(); redraw();
         e.preventDefault();
         break;
       case '2':
         S.mode = MODE_GUIDES;
-        updatePanel(); updateStatusBar();
+        updatePanel(); updateStatusBar(); redraw();
         e.preventDefault();
         break;
       case '3':
@@ -1403,12 +1403,18 @@
     const inBorderBox = (dx, dy) =>
       dx > borderBox.l && dx < borderBox.r && dy > borderBox.t && dy < borderBox.b;
 
+    const VW = document.documentElement.clientWidth;
+    const VH = document.documentElement.clientHeight;
+    const CHIP_PAD = 24; // keep chips inside viewport
+
     const tryLabel = (val, dx, dy, bg, fg, key, spanH, spanW) => {
       if (Math.abs(val) < 0.5) return;
       const fitsInZone = spanH >= OVF_MIN_H && spanW >= OVF_MIN_W;
       if (fitsInZone && !(smallEl && inBorderBox(dx, dy))) {
-        drawMetricChip(dx, dy, fmtU(val), bg, fg);
-        registerLabelSlot(dx, dy);
+        const cx = Math.max(CHIP_PAD, Math.min(VW - CHIP_PAD, dx));
+        const cy = Math.max(CHIP_PAD, Math.min(VH - CHIP_PAD, dy));
+        drawMetricChip(cx, cy, fmtU(val), bg, fg);
+        registerLabelSlot(cx, cy);
       } else {
         ovfItems.push({ text: `${key} ${fmtU(val)}`, bg, fg });
       }
@@ -1430,7 +1436,8 @@
     if (cw > 0 && ch > 0) {
       const sizeLabel = `${fmtU(cw)} × ${fmtU(ch)}`;
       if (!smallEl && cw >= 30 && ch >= 16) {
-        const scx = contentBox.l + cw/2, scy = contentBox.t + ch/2;
+        const scx = Math.max(CHIP_PAD, Math.min(VW - CHIP_PAD, contentBox.l + cw/2));
+        const scy = Math.max(CHIP_PAD, Math.min(VH - CHIP_PAD, contentBox.t + ch/2));
         drawMetricChip(scx, scy, sizeLabel, L_C_BG, L_C_FG, 18, 4, 4);
         registerLabelSlot(scx, scy);
       } else {
@@ -1460,20 +1467,26 @@
     const calloutW = Math.ceil(Math.max(...items.map(it => CTX.measureText(it.text).width))) + PAD_X * 2;
     const calloutH = items.length * (CHIP_H + ROW_GAP) - ROW_GAP + PAD_Y * 2;
 
-    let ax, ay;
-    if (marginBox.r + calloutW + MARGIN < vw) {
-      ax = marginBox.r + MARGIN;
-      ay = Math.max(8, Math.min(vh - calloutH - 8, elCY - calloutH / 2));
-    } else if (marginBox.l - calloutW - MARGIN > 0) {
-      ax = marginBox.l - calloutW - MARGIN;
-      ay = Math.max(8, Math.min(vh - calloutH - 8, elCY - calloutH / 2));
-    } else if (marginBox.b + calloutH + MARGIN < vh) {
-      ax = Math.max(8, Math.min(vw - calloutW - 8, elCX - calloutW / 2));
-      ay = marginBox.b + MARGIN;
-    } else {
-      ax = Math.max(8, Math.min(vw - calloutW - 8, elCX - calloutW / 2));
-      ay = Math.max(8, marginBox.t - calloutH - MARGIN);
+    // Try anchors in priority order; pick first that doesn't conflict with existing slots
+    const slotFree = (pcx, pcy) => !labelSlots.some(s =>
+      Math.abs(pcx - s.cx) < calloutW / 2 + 20 && Math.abs(pcy - s.cy) < calloutH / 2 + 12
+    );
+    const anchors = [
+      marginBox.r + calloutW + MARGIN < vw
+        ? { ax: marginBox.r + MARGIN, ay: Math.max(8, Math.min(vh - calloutH - 8, elCY - calloutH / 2)) } : null,
+      marginBox.l - calloutW - MARGIN > 0
+        ? { ax: marginBox.l - calloutW - MARGIN, ay: Math.max(8, Math.min(vh - calloutH - 8, elCY - calloutH / 2)) } : null,
+      marginBox.b + calloutH + MARGIN < vh
+        ? { ax: Math.max(8, Math.min(vw - calloutW - 8, elCX - calloutW / 2)), ay: marginBox.b + MARGIN } : null,
+      { ax: Math.max(8, Math.min(vw - calloutW - 8, elCX - calloutW / 2)), ay: Math.max(8, marginBox.t - calloutH - MARGIN) },
+    ].filter(Boolean);
+
+    let ax = anchors[0].ax, ay = anchors[0].ay;
+    for (const a of anchors) {
+      if (slotFree(a.ax + calloutW / 2, a.ay + calloutH / 2)) { ax = a.ax; ay = a.ay; break; }
     }
+    ax = Math.max(8, Math.min(vw - calloutW - 8, ax));
+    ay = Math.max(8, Math.min(vh - calloutH - 8, ay));
 
     const calloutCX = ax + calloutW / 2;
     const calloutCY = ay + calloutH / 2;
@@ -2098,18 +2111,38 @@
     const display = cs.display;
     const isFlex  = display === 'flex' || display === 'inline-flex';
     const isGrid  = display === 'grid' || display === 'inline-grid';
-    if (!isFlex && !isGrid) return;
+    // Skip display types that have no meaningful child spacing (table internals, none, contents)
+    const skip = ['none', 'table-cell', 'table-row', 'table-column', 'table-caption',
+                  'table-row-group', 'table-header-group', 'table-footer-group', 'table-column-group'];
+    if (skip.includes(display)) return;
 
     const children = Array.from(container.children).filter(ch => {
       if (ch.closest('#mt-root')) return false;
       const r = ch.getBoundingClientRect();
       return r.width > 0 && r.height > 0;
     });
-    if (children.length < 2) return;
+
+    // Text nodes become anonymous flex/grid items (common in <button>)
+    const textRects = Array.from(container.childNodes)
+      .filter(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim().length > 0)
+      .map(n => {
+        try {
+          const range = document.createRange();
+          range.selectNodeContents(n);
+          const r = range.getBoundingClientRect();
+          range.detach();
+          return (r.width > 0 && r.height > 0) ? r : null;
+        } catch { return null; }
+      })
+      .filter(Boolean);
 
     const cR        = container.getBoundingClientRect();
-    const rects     = children.map(ch => ch.getBoundingClientRect());
-    const rectToEl  = new Map(children.map((ch, i) => [rects[i], ch]));
+    const elemRects = children.map(ch => ch.getBoundingClientRect());
+    const rects     = [...elemRects, ...textRects];
+    if (rects.length < 2) return;
+
+    // rectToEl only covers element children; text-node rects map to undefined → margin treated as 0
+    const rectToEl  = new Map(children.map((ch, i) => [elemRects[i], ch]));
     const isColFlex = isFlex && cs.flexDirection.startsWith('column');
     const colGap    = parseFloat(cs.columnGap) || 0;
     const rowGap    = parseFloat(cs.rowGap)    || 0;
@@ -2243,9 +2276,25 @@
 
     const vw = document.documentElement.clientWidth;
     const vh = document.documentElement.clientHeight;
-    labels.forEach(({ x1, y1, x2, y2, size, axis, kind }) => {
-      addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, kind);
-    });
+
+    const smallContainer = cR.width < 80 || cR.height < 60;
+    if (smallContainer && labels.length > 0) {
+      const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
+      const GAP_BG = _p('--mt-label-gap-h-bg');
+      const GAP_FG = _p('--mt-label-gap-h-fg');
+      const MGN_BG = _p('--mt-label-gap-margin-bg');
+      const MGN_FG = _p('--mt-label-gap-margin-fg');
+      const ovfItems = labels.map(({ size, axis, kind }) => ({
+        text: `${axis === 'h' ? '↔' : '↕'} ${fmtU(size)}`,
+        bg: kind === 'margin' ? MGN_BG : GAP_BG,
+        fg: kind === 'margin' ? MGN_FG : GAP_FG,
+      }));
+      drawBmCallout(ovfItems, { l: cR.left, t: cR.top, r: cR.right, b: cR.bottom });
+    } else {
+      labels.forEach(({ x1, y1, x2, y2, size, axis, kind }) => {
+        addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, kind);
+      });
+    }
   }
 
   function addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, kind = 'gap') {
@@ -2254,39 +2303,61 @@
     div.className = (axis === 'h' ? 'mt-gap-label mt-gap-label-h' : 'mt-gap-label mt-gap-label-v') + kindCls;
     div.textContent = fmtU(size);
 
-    let slotCX, slotCY;
+    const LABEL_H = 14; // approximate gap label height
+    const LABEL_W = 48; // approximate gap label max width
+    let slotCX, slotCY, baseCX, baseCY;
     if (axis === 'h') {
       const lx     = Math.max(28, Math.min(vw - 28, (x1 + x2) / 2));
       const stripH = y2 - y1;
-      if (stripH < 40) {
-        const top = Math.max(4, y1 - 4);
-        div.style.left      = `${lx}px`;
-        div.style.top       = `${top}px`;
-        div.style.transform = 'translate(-50%, -100%)';
-        slotCX = lx; slotCY = top - 9;
+      // Determine whether to place label above or below the strip
+      const placeAbove = stripH < 40 && (y1 - LABEL_H - 8 >= 4);
+      const placeBelow = stripH < 40 && !placeAbove;
+      let rawTop, tfm;
+      if (placeAbove) {
+        rawTop = Math.max(LABEL_H + 4, y1 - 4);
+        tfm = 'translate(-50%, -100%)';
+        baseCX = lx; baseCY = rawTop - LABEL_H / 2;
+      } else if (placeBelow) {
+        rawTop = Math.min(vh - LABEL_H - 4, y2 + 4);
+        tfm = 'translate(-50%, 0)';
+        baseCX = lx; baseCY = rawTop + LABEL_H / 2;
       } else {
-        const ly = Math.max(4, Math.min(vh - 24, y1));
-        div.style.left      = `${lx}px`;
-        div.style.top       = `${ly}px`;
-        div.style.transform = 'translate(-50%, 4px)';
-        slotCX = lx; slotCY = ly + 13;
+        rawTop = Math.max(4, Math.min(vh - 24, y1));
+        tfm = 'translate(-50%, 4px)';
+        baseCX = lx; baseCY = rawTop + 13;
       }
+      const free = findFreeLabelSlot(baseCX, baseCY, axis);
+      const dy = free.cy - baseCY;
+      slotCX = free.cx; slotCY = free.cy;
+      div.style.left      = `${lx}px`;
+      div.style.top       = `${rawTop + dy}px`;
+      div.style.transform = tfm;
     } else {
       const ly     = Math.max(4, Math.min(vh - 20, (y1 + y2) / 2));
       const stripH = y2 - y1;
-      if (stripH < 20) {
-        const left = Math.max(4, x1 - 4);
-        div.style.left      = `${left}px`;
-        div.style.top       = `${ly}px`;
-        div.style.transform = 'translate(-100%, -50%)';
-        slotCX = left - 30; slotCY = ly;
+      // Determine whether to place label left or right of the strip
+      const placeLeft  = stripH < 20 && (x1 - LABEL_W - 8 >= 4);
+      const placeRight = stripH < 20 && !placeLeft;
+      let rawLeft, tfm;
+      if (placeLeft) {
+        rawLeft = Math.max(LABEL_W + 4, x1 - 4);
+        tfm = 'translate(-100%, -50%)';
+        baseCX = rawLeft - LABEL_W / 2; baseCY = ly;
+      } else if (placeRight) {
+        rawLeft = Math.min(vw - LABEL_W - 4, x2 + 4);
+        tfm = 'translate(0, -50%)';
+        baseCX = rawLeft + LABEL_W / 2; baseCY = ly;
       } else {
-        const lx = Math.max(4, Math.min(vw - 60, x1));
-        div.style.left      = `${lx}px`;
-        div.style.top       = `${ly}px`;
-        div.style.transform = 'translate(4px, -50%)';
-        slotCX = lx + 30; slotCY = ly;
+        rawLeft = Math.max(4, Math.min(vw - 60, x1));
+        tfm = 'translate(4px, -50%)';
+        baseCX = rawLeft + 30; baseCY = ly;
       }
+      const free = findFreeLabelSlot(baseCX, baseCY, axis);
+      const dx = free.cx - baseCX;
+      slotCX = free.cx; slotCY = free.cy;
+      div.style.left      = `${rawLeft + dx}px`;
+      div.style.top       = `${ly}px`;
+      div.style.transform = tfm;
     }
 
     ROOT.appendChild(div);
