@@ -58,8 +58,8 @@
     inspect:   `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5.8" cy="5.8" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M8 8L12 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
     guides:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5.5h10M5.5 2v10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="5.5" cy="5.5" r="1.3" fill="currentColor"/></svg>`,
     cursor:    `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 2L2.5 11L5.5 8.5L7 12L8.2 11.2L6.8 7.5L10.5 7.5Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    snap:      `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3.5 2.5v3.8a3.5 3.5 0 0 0 7 0V2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M3.5 10.2v1.8M10.5 10.2v1.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
-    clear:     `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 4.5h9M5 4.5l.5 6.5h3l.5-6.5M5.5 4.5V3h3v1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.2 6.3v2.8M7.8 6.3v2.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+    snap:      `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5v11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="1.5 1.5"/><path d="M1.5 7H5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 5.5L6.5 7L5 8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 7H9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M9 5.5L7.5 7L9 8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    clear:     `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 9.5L7.5 3L12 5.5L7.5 12L3 9.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.5 6.5L10 9" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><path d="M3 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`,
     shortcuts: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="2.5" width="11" height="9" rx="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M3.2 5h1.1M5.6 5h1.1M8 5h1.1M10.4 5h1.1M3.2 7h1.1M5.6 7h1.1M8 7h1.1M10.4 7h1.1M3.2 9h3.8M8.4 9h2.8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>`,
     sun:       `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.3" stroke="currentColor" stroke-width="1.4"/><path d="M7 1.5v1.3M7 11.2v1.3M1.5 7h1.3M11.2 7h1.3M3.1 3.1l.9.9M10 10l.9.9M10.9 3.1l-.9.9M4 10l-.9.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`,
     moon:      `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.2 2.2a5 5 0 1 0 2.6 8.8 4.4 4.4 0 1 1-2.6-8.8z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -571,11 +571,7 @@
           ['Nudge guide 10px',  'Shift+arrows'],
         ],
       };
-      const scCursor = {
-        title: 'Cursor',
-        rows: [['Use page normally', 'No overlay']],
-      };
-      const scGroups = [scCommon, scInspector, scGuides, scCursor];
+      const scGroups = [scCommon, scInspector, scGuides];
       scGroups.forEach(({ title, rows }) => {
         const grp = el('div', 'cp-sc-group', shp);
         el('div', 'cp-sc-group-title', grp).textContent = title;
@@ -835,10 +831,11 @@
       e.preventDefault();
       e.stopPropagation();
       const type = S.moveDeltaY >= S.moveDeltaX ? 'h' : 'v';
-      const pos  = type === 'h'
+      const viewportPos = type === 'h'
         ? (S.snap ? snapPoint('h', e.clientY) : e.clientY)
         : (S.snap ? snapPoint('v', e.clientX) : e.clientX);
-      addGuide(type, pos);
+      const scrollOff = type === 'h' ? window.scrollY : window.scrollX;
+      addGuide(type, viewportPos + scrollOff);
       return;
     }
 
@@ -912,13 +909,13 @@
         break;
       case 'h': case 'H':
         if (S.mode === MODE_GUIDES && !e.ctrlKey && !e.metaKey) {
-          addGuide('h', S.snap ? snapPoint('h', S.mouseY) : S.mouseY);
+          addGuide('h', (S.snap ? snapPoint('h', S.mouseY) : S.mouseY) + window.scrollY);
           e.preventDefault();
         }
         break;
       case 'v': case 'V':
         if (S.mode === MODE_GUIDES && !e.ctrlKey && !e.metaKey) {
-          addGuide('v', S.snap ? snapPoint('v', S.mouseX) : S.mouseX);
+          addGuide('v', (S.snap ? snapPoint('v', S.mouseX) : S.mouseX) + window.scrollX);
           e.preventDefault();
         }
         break;
@@ -1712,8 +1709,9 @@
       // Guide DOM element for interaction
       const gEl = document.createElement('div');
       gEl.className = `mt-guide ${g.type}` + (g.id === S.activeGuide ? ' selected' : '');
-      if (g.type === 'h') gEl.style.top  = `${g.pos}px`;
-      else                gEl.style.left = `${g.pos}px`;
+      const vPos = g.type === 'h' ? g.pos - window.scrollY : g.pos - window.scrollX;
+      if (g.type === 'h') gEl.style.top  = `${vPos}px`;
+      else                gEl.style.left = `${vPos}px`;
       ROOT.appendChild(gEl);
 
       gEl.addEventListener('click', (e) => {
@@ -1730,9 +1728,9 @@
         S.activeGuide = g.id;
         const onMove = (ev) => {
           if (!dragging) return;
-          let pos = g.type === 'h' ? ev.clientY : ev.clientX;
-          if (S.snap) pos = snapPoint(g.type, pos);
-          g.pos = pos;
+          const vpPos = g.type === 'h' ? ev.clientY : ev.clientX;
+          const scrollOff = g.type === 'h' ? window.scrollY : window.scrollX;
+          g.pos = (S.snap ? snapPoint(g.type, vpPos) : vpPos) + scrollOff;
           redraw();
         };
         const onUp = () => {
@@ -1748,8 +1746,8 @@
       const label = document.createElement('div');
       label.className = 'mt-guide-label';
       label.textContent = fmtU(g.pos);
-      if (g.type === 'h') label.style.cssText = `left:4px;top:${g.pos - 16}px;`;
-      else                label.style.cssText = `left:${g.pos + 4}px;top:4px;`;
+      if (g.type === 'h') label.style.cssText = `left:4px;top:${vPos - 16}px;`;
+      else                label.style.cssText = `left:${vPos + 4}px;top:4px;`;
       ROOT.appendChild(label);
     });
 
@@ -1764,12 +1762,12 @@
 
     for (let i = 0; i < hGuides.length - 1; i++) {
       const midX = document.documentElement.clientWidth / 2;
-      const mid  = (hGuides[i] + hGuides[i+1]) / 2;
+      const mid  = (hGuides[i] + hGuides[i+1]) / 2 - window.scrollY;
       addDistLabel(Math.abs(hGuides[i+1] - hGuides[i]), midX, mid, 'v', 'guide');
     }
     for (let i = 0; i < vGuides.length - 1; i++) {
       const midY = document.documentElement.clientHeight / 2;
-      const mid  = (vGuides[i] + vGuides[i+1]) / 2;
+      const mid  = (vGuides[i] + vGuides[i+1]) / 2 - window.scrollX;
       addDistLabel(Math.abs(vGuides[i+1] - vGuides[i]), mid, midY, 'h', 'guide');
     }
   }
@@ -2075,19 +2073,35 @@
     div.textContent = fmtU(size);
 
     if (axis === 'h') {
-      // Column gap: centred horizontally in the strip, anchored to the top edge
-      const lx = Math.max(28, Math.min(vw - 28, (x1 + x2) / 2));
-      const ly = Math.max(4, Math.min(vh - 24, y1));
-      div.style.left      = `${lx}px`;
-      div.style.top       = `${ly}px`;
-      div.style.transform = 'translate(-50%, 4px)';
+      // Column gap strip: full container height, gap width
+      const lx     = Math.max(28, Math.min(vw - 28, (x1 + x2) / 2));
+      const stripH = y2 - y1;
+      if (stripH < 40) {
+        // container too short — float label above it
+        div.style.left      = `${lx}px`;
+        div.style.top       = `${Math.max(4, y1 - 4)}px`;
+        div.style.transform = 'translate(-50%, -100%)';
+      } else {
+        const ly = Math.max(4, Math.min(vh - 24, y1));
+        div.style.left      = `${lx}px`;
+        div.style.top       = `${ly}px`;
+        div.style.transform = 'translate(-50%, 4px)';
+      }
     } else {
-      // Row gap: anchored to the left edge, centred vertically in the strip
-      const lx = Math.max(4, Math.min(vw - 60, x1));
-      const ly = Math.max(4, Math.min(vh - 20, (y1 + y2) / 2));
-      div.style.left      = `${lx}px`;
-      div.style.top       = `${ly}px`;
-      div.style.transform = 'translate(4px, -50%)';
+      // Row gap strip: gap height, full container width
+      const ly     = Math.max(4, Math.min(vh - 20, (y1 + y2) / 2));
+      const stripH = y2 - y1;
+      if (stripH < 20) {
+        // gap too narrow — float label to the left of the container
+        div.style.left      = `${Math.max(4, x1 - 4)}px`;
+        div.style.top       = `${ly}px`;
+        div.style.transform = 'translate(-100%, -50%)';
+      } else {
+        const lx = Math.max(4, Math.min(vw - 60, x1));
+        div.style.left      = `${lx}px`;
+        div.style.top       = `${ly}px`;
+        div.style.transform = 'translate(4px, -50%)';
+      }
     }
 
     ROOT.appendChild(div);

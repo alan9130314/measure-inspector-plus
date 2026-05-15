@@ -167,19 +167,19 @@
   --mt-ov-bm-border-label-bg:  rgba(30, 58, 138, 0.92);
   --mt-ov-bm-border-label-fg:  #eff6ff;
 
-  --mt-surface-0:    rgba(224, 222, 232, 0.70);
-  --mt-surface-1:    rgba(242, 240, 248, 0.66);
-  --mt-surface-2:    rgba(232, 230, 240, 0.66);
-  --mt-surface-3:    rgba(216, 214, 226, 0.74);
-  --mt-surface-hover:rgba(206, 204, 218, 0.72);
-  --mt-footer-bg:    rgba(208, 206, 218, 0.68);
+  --mt-surface-0:    rgba(246, 245, 252, 0.80);
+  --mt-surface-1:    rgba(253, 252, 255, 0.76);
+  --mt-surface-2:    rgba(248, 247, 254, 0.74);
+  --mt-surface-3:    rgba(240, 239, 250, 0.84);
+  --mt-surface-hover:rgba(232, 231, 246, 0.80);
+  --mt-footer-bg:    rgba(238, 237, 250, 0.78);
 
-  --mt-panel-border: rgba(152, 144, 172, 0.44);
-  --mt-panel-outer:  rgba(130, 122, 152, 0.52);
-  --mt-sep:          rgba(172, 164, 192, 0.40);
-  --mt-border-ui:    rgba(158, 150, 178, 0.50);
-  --mt-border-hover: rgba(0, 0, 0, 0.20);
-  --mt-footer-bd:    rgba(160, 152, 180, 0.38);
+  --mt-panel-border: rgba(140, 130, 168, 0.28);
+  --mt-panel-outer:  rgba(120, 110, 148, 0.36);
+  --mt-sep:          rgba(165, 155, 188, 0.26);
+  --mt-border-ui:    rgba(148, 138, 172, 0.36);
+  --mt-border-hover: rgba(0, 0, 0, 0.18);
+  --mt-footer-bd:    rgba(152, 142, 178, 0.22);
 
   --mt-text-bright:  #0f172a;
   --mt-text-primary: #1e293b;
@@ -548,10 +548,10 @@
   flex-shrink:0; padding-top:5px;
 }
 .cp-sp-units {
-  display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; align-self:flex-start; margin-top:3px;
+  display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; align-self:flex-start;
 }
 .cp-sp-unit-btn {
-  height:26px; padding:0 4px; border-radius:6px; text-align:center;
+  height:26px; padding:0 8px; border-radius:6px; text-align:center;
   border:1px solid var(--mt-border-ui);
   background:var(--mt-surface-2);
   color:var(--mt-text-primary);
@@ -571,7 +571,7 @@
   margin-left:4px;
 }
 .cp-sp-rem-block {
-  margin-left:0; grid-column:1/-1;
+  margin-left:0; flex-basis:100%; display:flex; justify-content:flex-end;
 }
 .cp-sp-themes {
   display:flex; gap:4px; flex-shrink:0;
