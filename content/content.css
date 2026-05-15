@@ -171,12 +171,12 @@
   --mt-ov-bm-border-label-bg:  rgba(30, 58, 138, 0.92);
   --mt-ov-bm-border-label-fg:  #eff6ff;
 
-  --mt-surface-0:    rgba(246, 245, 252, 0.80);
+  --mt-surface-0:    rgba(253, 252, 255, 0.76);
   --mt-surface-1:    rgba(253, 252, 255, 0.76);
-  --mt-surface-2:    rgba(248, 247, 254, 0.74);
-  --mt-surface-3:    rgba(240, 239, 250, 0.84);
+  --mt-surface-2:    rgba(253, 252, 255, 0.76);
+  --mt-surface-3:    rgba(253, 252, 255, 0.76);
   --mt-surface-hover:rgba(232, 231, 246, 0.80);
-  --mt-footer-bg:    rgba(238, 237, 250, 0.78);
+  --mt-footer-bg:    rgba(253, 252, 255, 0.76);
 
   --mt-panel-border: rgba(140, 130, 168, 0.28);
   --mt-panel-outer:  rgba(120, 110, 148, 0.36);
@@ -708,7 +708,15 @@
   display:grid;
   grid-template-columns:minmax(200px, var(--ins-bm-px, 340px)) 5px minmax(160px, 1fr);
   gap:0;
-  align-items:stretch;
+  align-items:start;
+}
+.cp-props-wrap {
+  overflow-y:auto;
+  overflow-x:auto;
+  min-height:200px;
+  min-width:0;
+  box-sizing:border-box;
+  background: var(--mt-surface-1);
 }
 
 .cp-ins-gutter {
@@ -721,7 +729,7 @@
   align-self:stretch;
   position:relative;
   z-index:2;
-  flex-shrink:0;
+  min-height:200px;
 }
 .cp-ins-gutter:hover {
   background:var(--mt-cyan);
@@ -730,14 +738,16 @@
 
 /* ── Box Model column ───────────────────────────────────────── */
 .cp-bm {
-  padding:10px 12px 10px 10px;
+  padding:10px;
   min-width: 0;
   min-height: 200px;
+  max-height: 420px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   overflow-x: auto;
+  overflow-y: auto;
   background: var(--mt-surface-1);
 }
 .bm-header {
@@ -817,7 +827,7 @@
 }
 
 /* ── Properties column ──────────────────────────────────────── */
-.cp-props { padding:8px 10px; overflow-y:auto; min-height:200px; max-height:200px; min-width:0; background:var(--mt-surface-1); }
+.cp-props { padding:10px;  min-width:0; min-height:0; box-sizing:border-box; background:var(--mt-surface-1); flex:1; }
 .cp-props {
   scrollbar-width: thin;
   scrollbar-color: var(--mt-border-ui) var(--mt-surface-2);

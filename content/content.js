@@ -521,7 +521,8 @@
       el('div', 'cp-bm', body, 'id=mt-panel-bm');
       const insGutter = el('div', 'cp-ins-gutter', body, 'id=cp-ins-gutter');
       insGutter.title = 'Drag to resize box model / properties columns';
-      const propsCol = el('div', 'cp-props', body, 'id=mt-panel-props');
+      const propsWrap = el('div', 'cp-props-wrap', body);
+      const propsCol = el('div', 'cp-props', propsWrap, 'id=mt-panel-props');
       const posRow = el('div', 'cp-ins-pos', propsCol);
       el('span', 'cp-ins-pos-label', posRow).textContent = 'Viewport';
       const phPosEl = el('span', 'cp-ins-pos-val', posRow, 'id=ph-pos');
@@ -532,6 +533,7 @@
       hdr.addEventListener('click', () => {
         S.inspectorOpen = !S.inspectorOpen;
         wrap.style.display = S.inspectorOpen ? '' : 'none';
+        if (S.inspectorOpen) requestAnimationFrame(syncPropsWrapHeight);
         applyCurrentSnapZone();
       });
     }
@@ -1244,6 +1246,18 @@
         <div class="bm-row"><span></span><span class="bm-val bm-val-m">${fmtPx(m.bottom)}</span></div>
       </div>
     `;
+    syncPropsWrapHeight();
+  }
+
+  function syncPropsWrapHeight() {
+    const bmEl   = ROOT.querySelector('#mt-panel-bm');
+    const wrap   = ROOT.querySelector('.cp-props-wrap');
+    if (!bmEl || !wrap) return;
+    const h = bmEl.offsetHeight;
+    if (h > 0) {
+      wrap.style.height    = h + 'px';
+      wrap.style.maxHeight = h + 'px';
+    }
   }
 
   // ── Guides ────────────────────────────────────────────────────────────────
