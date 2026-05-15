@@ -1230,7 +1230,7 @@
                 <div class="bm-row"><span class="bm-zone-label">padding</span><span class="bm-val bm-val-p">${fmtPx(p.top)}</span></div>
                 <div class="bm-mid">
                   <span class="bm-val bm-val-p">${fmtPx(p.left)}</span>
-                  <div class="bm-layer bm-content"><span class="bm-val bm-val-c">${cw} × ${ch}</span></div>
+                  <div class="bm-layer bm-content"><span class="bm-val bm-val-c">${fmtU(cw)} × ${fmtU(ch)}</span></div>
                   <span class="bm-val bm-val-p">${fmtPx(p.right)}</span>
                 </div>
                 <div class="bm-row"><span></span><span class="bm-val bm-val-p">${fmtPx(p.bottom)}</span></div>
@@ -2505,15 +2505,16 @@
   }
   function fmtU(n) {
     if (n === 0) return '0';
+    const dec = (v, d) => parseFloat(v.toFixed(d));
     switch (S.unit) {
-      case 'rem': { const v = n / rootFontSize();            return parseFloat(v.toFixed(3)) + 'rem'; }
-      case 'vw':  { const v = n * 100 / window.innerWidth;  return parseFloat(v.toFixed(2)) + 'vw';  }
-      case 'vh':  { const v = n * 100 / window.innerHeight; return parseFloat(v.toFixed(2)) + 'vh';  }
-      case 'pt':  { const v = n * 0.75;                     return parseFloat(v.toFixed(2)) + 'pt';  }
-      case 'in':  { const v = n / 96;                       return parseFloat(v.toFixed(3)) + 'in';  }
-      case 'cm':  { const v = n * 2.54 / 96;                return parseFloat(v.toFixed(2)) + 'cm';  }
-      case 'mm':  { const v = n * 25.4 / 96;                return parseFloat(v.toFixed(1)) + 'mm';  }
-      default: { const v = parseFloat(n.toFixed(2)); return (v === 0 ? '0' : v + 'px'); }
+      case 'rem': { const v = n / rootFontSize();            return dec(v, 2) + 'rem'; }
+      case 'vw':  { const v = n * 100 / window.innerWidth;  return dec(v, 2) + 'vw';  }
+      case 'vh':  { const v = n * 100 / window.innerHeight; return dec(v, 2) + 'vh';  }
+      case 'pt':  { const v = n * 0.75;                     return dec(v, 1) + 'pt';  }
+      case 'in':  { const v = n / 96;                       return dec(v, 2) + 'in';  }
+      case 'cm':  { const v = n * 2.54 / 96;                return dec(v, 2) + 'cm';  }
+      case 'mm':  { const v = n * 25.4 / 96;                return dec(v, 1) + 'mm';  }
+      default:    { const v = dec(n, 2);                     return v === 0 ? '0' : v + 'px'; }
     }
   }
   function fmtCssLen(val) {
