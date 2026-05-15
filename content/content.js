@@ -1986,90 +1986,151 @@
     });
     if (children.length < 2) return;
 
-    const cR    = container.getBoundingClientRect();
-    const rects = children.map(ch => ch.getBoundingClientRect());
+    const cR        = container.getBoundingClientRect();
+    const rects     = children.map(ch => ch.getBoundingClientRect());
+    const rectToEl  = new Map(children.map((ch, i) => [rects[i], ch]));
     const isColFlex = isFlex && cs.flexDirection.startsWith('column');
-    const gaps  = []; // { x1, y1, x2, y2, size, axis }
+    const colGap    = parseFloat(cs.columnGap) || 0;
+    const rowGap    = parseFloat(cs.rowGap)    || 0;
+
+    // segs: individual colored regions { x1,y1,x2,y2, kind:'gap'|'margin' }
+    // labels: one per logical gap { x1,y1,x2,y2, size, axis, kind }
+    const segs   = [];
+    const labels  = [];
+
+    // Helper: push h-gap segments between two adjacent items
+    const pushHSegs = (a, b) => {
+      const totalSpace = b.left - a.right;
+      if (totalSpace < 0.5) return;
+      const key = `${Math.round(a.right)},${Math.round(b.left)}`;
+      const aEl = rectToEl.get(a), bEl = rectToEl.get(b);
+      const mr  = aEl ? (parseFloat(window.getComputedStyle(aEl).marginRight) || 0) : 0;
+      const ml  = bEl ? (parseFloat(window.getComputedStyle(bEl).marginLeft)  || 0) : 0;
+      const hasMargin = mr > 0.5 || ml > 0.5;
+      const hasGap    = colGap > 0.5;
+
+      if (!hasMargin || !hasGap) {
+        const kind = hasGap ? 'gap' : 'margin';
+        segs.push({ x1: a.right, y1: cR.top, x2: b.left, y2: cR.bottom, kind });
+      } else {
+        const xA = Math.min(a.right + mr, b.left);
+        const xB = Math.max(b.left  - ml, a.right);
+        if (mr > 0.5)          segs.push({ x1: a.right, y1: cR.top, x2: xA,     y2: cR.bottom, kind: 'margin' });
+        if (xB > xA + 0.5)    segs.push({ x1: xA,      y1: cR.top, x2: xB,     y2: cR.bottom, kind: 'gap'    });
+        if (ml > 0.5)          segs.push({ x1: xB,      y1: cR.top, x2: b.left, y2: cR.bottom, kind: 'margin' });
+      }
+      const labelKind = hasMargin ? 'margin' : 'gap';
+      labels.push({ x1: a.right, y1: cR.top, x2: b.left, y2: cR.bottom, size: totalSpace, axis: 'h', kind: labelKind });
+      return key;
+    };
+
+    // Helper: push v-gap segments between two rows
+    const pushVSegs = (rowTop, rowBot, y1, y2) => {
+      const totalSpace = y2 - y1;
+      if (totalSpace < 0.5) return;
+      const topElems = rowTop.map(r => rectToEl.get(r)).filter(Boolean);
+      const botElems = rowBot.map(r => rectToEl.get(r)).filter(Boolean);
+      const maxMb = topElems.length ? Math.max(...topElems.map(el => parseFloat(window.getComputedStyle(el).marginBottom) || 0)) : 0;
+      const maxMt = botElems.length ? Math.max(...botElems.map(el => parseFloat(window.getComputedStyle(el).marginTop)    || 0)) : 0;
+      const hasMargin = maxMb > 0.5 || maxMt > 0.5;
+      const hasGap    = rowGap > 0.5;
+
+      if (!hasMargin || !hasGap) {
+        const kind = hasGap ? 'gap' : 'margin';
+        segs.push({ x1: cR.left, y1, x2: cR.right, y2, kind });
+      } else {
+        const yA = Math.min(y1 + maxMb, y2);
+        const yB = Math.max(y2 - maxMt, y1);
+        if (maxMb > 0.5)    segs.push({ x1: cR.left, y1, x2: cR.right, y2: yA, kind: 'margin' });
+        if (yB > yA + 0.5)  segs.push({ x1: cR.left, y1: yA, x2: cR.right, y2: yB, kind: 'gap'    });
+        if (maxMt > 0.5)    segs.push({ x1: cR.left, y1: yB, x2: cR.right, y2, kind: 'margin' });
+      }
+      const labelKind = hasMargin ? 'margin' : 'gap';
+      labels.push({ x1: cR.left, y1, x2: cR.right, y2, size: totalSpace, axis: 'v', kind: labelKind });
+    };
 
     if (!isColFlex) {
-      // row-flex or grid: group into rows, detect column gaps
       const rows = groupByRow(rects);
 
-      // Column gaps (deduplicated by x-range)
       const seenH = new Set();
       rows.forEach(row => {
         row.slice().sort((a, b) => a.left - b.left).forEach((a, i, arr) => {
           if (i === arr.length - 1) return;
-          const b = arr[i + 1];
-          const gap = b.left - a.right;
-          if (gap < 0.5) return;
-          const key = `${Math.round(a.right)},${Math.round(b.left)}`;
-          if (seenH.has(key)) return;
-          seenH.add(key);
-          gaps.push({ x1: a.right, y1: cR.top, x2: b.left, y2: cR.bottom, size: gap, axis: 'h' });
+          const b   = arr[i + 1];
+          const key = pushHSegs(a, b);
+          if (key) seenH.add(key);
         });
       });
 
-      // Row gaps (grid or wrapping flex)
       if (isGrid || (isFlex && cs.flexWrap !== 'nowrap')) {
         for (let i = 0; i < rows.length - 1; i++) {
           const maxBottom = Math.max(...rows[i].map(r => r.bottom));
           const minTop    = Math.min(...rows[i + 1].map(r => r.top));
-          const gap = minTop - maxBottom;
-          if (gap > 0.5)
-            gaps.push({ x1: cR.left, y1: maxBottom, x2: cR.right, y2: minTop, size: gap, axis: 'v' });
+          pushVSegs(rows[i], rows[i + 1], maxBottom, minTop);
         }
       }
     } else {
-      // column-flex: group into columns, detect vertical gaps
       const seenV = new Set();
       groupByCol(rects).forEach(col => {
         col.slice().sort((a, b) => a.top - b.top).forEach((a, i, arr) => {
           if (i === arr.length - 1) return;
-          const b = arr[i + 1];
+          const b   = arr[i + 1];
           const gap = b.top - a.bottom;
           if (gap < 0.5) return;
           const key = `${Math.round(a.bottom)},${Math.round(b.top)}`;
           if (seenV.has(key)) return;
           seenV.add(key);
-          gaps.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: b.top, size: gap, axis: 'v' });
+          const aEl = rectToEl.get(a), bEl = rectToEl.get(b);
+          const mb  = aEl ? (parseFloat(window.getComputedStyle(aEl).marginBottom) || 0) : 0;
+          const mt  = bEl ? (parseFloat(window.getComputedStyle(bEl).marginTop)    || 0) : 0;
+          const hasMargin = mb > 0.5 || mt > 0.5;
+          const hasGap    = rowGap > 0.5;
+
+          if (!hasMargin || !hasGap) {
+            const kind = hasGap ? 'gap' : 'margin';
+            segs.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: b.top, kind });
+          } else {
+            const yA = Math.min(a.bottom + mb, b.top);
+            const yB = Math.max(b.top - mt, a.bottom);
+            if (mb > 0.5)       segs.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: yA,    kind: 'margin' });
+            if (yB > yA + 0.5)  segs.push({ x1: cR.left, y1: yA,      x2: cR.right, y2: yB,    kind: 'gap'    });
+            if (mt > 0.5)       segs.push({ x1: cR.left, y1: yB,       x2: cR.right, y2: b.top, kind: 'margin' });
+          }
+          const labelKind = hasMargin ? 'margin' : 'gap';
+          labels.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: b.top, size: gap, axis: 'v', kind: labelKind });
         });
       });
     }
 
-    if (!gaps.length) return;
+    if (!segs.length) return;
 
-    const hatchH = makeHatchPattern('rgba(255, 170, 72, 0.92)');
-    const hatchV = makeHatchPattern('rgba(72, 220, 232, 0.9)');
+    const hatchGap    = makeHatchPattern('rgba(37, 99, 235, 0.72)');
+    const hatchMargin = makeHatchPattern('rgba(202, 138, 4, 0.80)');
 
     CTX.save();
     CTX.lineWidth = 1;
     CTX.setLineDash([]);
-    gaps.forEach(({ x1, y1, x2, y2, axis }) => {
+    segs.forEach(({ x1, y1, x2, y2, kind }) => {
       const w = x2 - x1, h = y2 - y1;
-      if (axis === 'h') {
-        CTX.fillStyle   = hatchH;
-        CTX.strokeStyle = 'rgba(255, 140, 40, 0.95)';
-      } else {
-        CTX.fillStyle   = hatchV;
-        CTX.strokeStyle = 'rgba(40, 210, 225, 0.95)';
-      }
+      if (w < 0.5 || h < 0.5) return;
+      CTX.fillStyle   = kind === 'gap' ? hatchGap    : hatchMargin;
+      CTX.strokeStyle = kind === 'gap' ? 'rgba(37, 99, 235, 0.90)' : 'rgba(202, 138, 4, 0.90)';
       CTX.fillRect(x1, y1, w, h);
       CTX.strokeRect(x1, y1, w, h);
     });
     CTX.restore();
 
-    // Labels placed at edge of each gap strip, not the midpoint of the container
     const vw = document.documentElement.clientWidth;
     const vh = document.documentElement.clientHeight;
-    gaps.forEach(({ x1, y1, x2, y2, size, axis }) => {
-      addGapLabel(size, x1, y1, x2, y2, axis, vw, vh);
+    labels.forEach(({ x1, y1, x2, y2, size, axis, kind }) => {
+      addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, kind);
     });
   }
 
-  function addGapLabel(size, x1, y1, x2, y2, axis, vw, vh) {
+  function addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, kind = 'gap') {
     const div = document.createElement('div');
-    div.className = axis === 'h' ? 'mt-gap-label mt-gap-label-h' : 'mt-gap-label mt-gap-label-v';
+    const kindCls = kind === 'margin' ? ' mt-gap-label-margin' : '';
+    div.className = (axis === 'h' ? 'mt-gap-label mt-gap-label-h' : 'mt-gap-label mt-gap-label-v') + kindCls;
     div.textContent = fmtU(size);
 
     if (axis === 'h') {

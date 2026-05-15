@@ -30,10 +30,12 @@
 
   --mt-label-orange-bg:  rgba(179, 38, 30, 0.92);
   --mt-label-orange-fg:  #fdecea;
-  --mt-label-gap-h-bg:   rgba(106, 63, 0, 0.92);
-  --mt-label-gap-h-fg:   #fff0d4;
-  --mt-label-gap-v-bg:   rgba(35, 95, 55, 0.9);
-  --mt-label-gap-v-fg:   #d8f5dc;
+  --mt-label-gap-h-bg:      rgba(15, 40, 150, 0.92);
+  --mt-label-gap-h-fg:      #dbeafe;
+  --mt-label-gap-v-bg:      rgba(15, 40, 150, 0.92);
+  --mt-label-gap-v-fg:      #dbeafe;
+  --mt-label-gap-margin-bg: rgba(120, 60, 0, 0.92);
+  --mt-label-gap-margin-fg: #fef3c7;
   /* Guides: opaque chips read on light or dark page content behind the overlay */
   --mt-label-guide-bg:   rgba(18, 52, 110, 0.96);
   --mt-label-guide-fg:   #ffffff;
@@ -136,10 +138,12 @@
 
   --mt-label-orange-bg:  rgba(185, 28, 28, 0.92);
   --mt-label-orange-fg:  #fef2f2;
-  --mt-label-gap-h-bg:   rgba(120, 53, 15, 0.9);
-  --mt-label-gap-h-fg:   #fffbeb;
-  --mt-label-gap-v-bg:   rgba(21, 87, 48, 0.9);
-  --mt-label-gap-v-fg:   #dcfce7;
+  --mt-label-gap-h-bg:      rgba(15, 40, 150, 0.92);
+  --mt-label-gap-h-fg:      #dbeafe;
+  --mt-label-gap-v-bg:      rgba(15, 40, 150, 0.92);
+  --mt-label-gap-v-fg:      #dbeafe;
+  --mt-label-gap-margin-bg: rgba(120, 60, 0, 0.92);
+  --mt-label-gap-margin-fg: #fef3c7;
 
   --mt-label-guide-bg:   rgba(15, 23, 42, 0.94);
   --mt-label-guide-fg:   #f8fafc;
@@ -258,8 +262,9 @@
   padding:1px 5px; border-radius:3px;
   pointer-events:none; white-space:nowrap;
 }
-.mt-gap-label-h { background:var(--mt-label-gap-h-bg); color:var(--mt-label-gap-h-fg); border:1px solid var(--mt-orange); }
-.mt-gap-label-v { background:var(--mt-label-gap-v-bg); color:var(--mt-label-gap-v-fg);  border:1px solid var(--mt-cyan);   }
+.mt-gap-label-h { background:var(--mt-label-gap-h-bg); color:var(--mt-label-gap-h-fg); border:1px solid rgba(99, 149, 255, 0.55); }
+.mt-gap-label-v { background:var(--mt-label-gap-v-bg); color:var(--mt-label-gap-v-fg); border:1px solid rgba(99, 149, 255, 0.55); }
+.mt-gap-label-margin { background:var(--mt-label-gap-margin-bg) !important; color:var(--mt-label-gap-margin-fg) !important; border-color:rgba(202, 138, 4, 0.55) !important; }
 
 /* ── Guide lines ────────────────────────────────────────────── */
 .mt-guide { position:fixed; z-index:2147483625; pointer-events:auto; cursor:pointer; }
