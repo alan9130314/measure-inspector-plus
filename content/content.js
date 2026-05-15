@@ -1411,14 +1411,14 @@
         drawGuideElementDots(S.selected);
         S.selected.forEach(el => drawLayoutGaps(el));
       }
-      S.selected.forEach(el => drawBoxModelOverlay(el));
       S.selected.forEach(el => drawGridLines(el));
+      S.selected.forEach(el => drawBoxModelOverlay(el));
       drawInterSelectedDistances();
       drawDistances();
       if (S.hovered && S.selected.length === 0 && pointerInViewport()) {
         drawLayoutGaps(S.hovered);
-        drawBoxModelOverlay(S.hovered);
         drawGridLines(S.hovered);
+        drawBoxModelOverlay(S.hovered);
         drawNeighborDistances(S.hovered);
       }
     }
@@ -2118,7 +2118,7 @@
 
     if (!segs.length) return;
 
-    const hatchGap    = makeHatchPattern('rgba(37, 99, 235, 0.72)');
+    const hatchGap    = makeHatchPattern('rgba(155, 87, 211, 0.72)');
     const hatchMargin = makeHatchPattern('rgba(202, 138, 4, 0.80)');
 
     CTX.save();
@@ -2128,7 +2128,7 @@
       const w = x2 - x1, h = y2 - y1;
       if (w < 0.5 || h < 0.5) return;
       CTX.fillStyle   = kind === 'gap' ? hatchGap    : hatchMargin;
-      CTX.strokeStyle = kind === 'gap' ? 'rgba(37, 99, 235, 0.90)' : 'rgba(202, 138, 4, 0.90)';
+      CTX.strokeStyle = kind === 'gap' ? 'rgba(155, 87, 211, 0.90)' : 'rgba(202, 138, 4, 0.90)';
       CTX.fillRect(x1, y1, w, h);
       CTX.strokeRect(x1, y1, w, h);
     });
