@@ -2,190 +2,779 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>MeasureTool Test Page</title>
+<title>MeasureTool — Feature Test Page</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
-  .page { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
-  h1 { color: #333; margin-bottom: 8px; }
-  .subtitle { color: #888; margin-bottom: 40px; }
-  .cards {
-    display: flex;
-    gap: 24px;
-    margin-bottom: 40px;
-  }
-  .card {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    flex: 1;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  }
-  .card h2 { margin: 0 0 12px; font-size: 16px; color: #6c63ff; }
-  .card p { margin: 0; color: #555; font-size: 14px; line-height: 1.6; }
-  .badge {
-    display: inline-block;
-    background: #ff6584;
-    color: white;
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 12px;
-    font-weight: 700;
-    margin-top: 8px;
-  }
-  .grid-section {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 40px;
-  }
-  .box {
-    background: white;
-    height: 80px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: #aaa;
-    border: 2px solid #eee;
-  }
-  .box:nth-child(2) { border-color: #6c63ff; color: #6c63ff; }
-  .box:nth-child(5) { background: #6c63ff; color: white; border-color: #6c63ff; }
-  .flex-section {
-    display: flex;
-    gap: 32px;
-    align-items: flex-start;
-    margin-bottom: 40px;
-    background: white;
-    padding: 24px;
-    border-radius: 12px;
-  }
-  .sidebar {
-    width: 180px;
-    flex-shrink: 0;
-    background: #f0eeff;
-    padding: 16px;
-    border-radius: 8px;
-  }
-  .content-area { flex: 1; }
-  .content-area p { color: #555; font-size: 14px; line-height: 1.8; margin: 0 0 12px; }
-  .btn {
-    display: inline-block;
-    padding: 10px 20px;
-    background: #6c63ff;
-    color: white;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-right: 8px;
-  }
-  .btn.outline {
-    background: transparent;
-    border: 2px solid #6c63ff;
-    color: #6c63ff;
-  }
-  .spacing-demo {
-    background: white;
-    padding: 40px;
-    border-radius: 12px;
-    margin-bottom: 40px;
-    display: flex;
-    gap: 60px;
-    align-items: center;
-    justify-content: center;
-  }
-  .demo-box {
-    width: 100px;
-    height: 60px;
-    background: #4facfe;
-    border-radius: 6px;
-  }
-  .demo-box2 {
-    width: 140px;
-    height: 80px;
-    background: #a8e063;
-    border-radius: 6px;
-    margin: 20px 0;
-  }
-  .instructions {
-    background: #1a1a2e;
-    color: #e0e0e0;
-    padding: 20px 24px;
-    border-radius: 12px;
-    font-size: 13px;
-    line-height: 2;
-  }
-  .instructions span { color: #6c63ff; font-weight: 700; }
-  code { background: #2d2d4e; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+/* ── Reset & base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: system-ui, sans-serif; margin: 0; background: #f0f0f4; color: #222; }
+
+/* ── Layout ───────────────────────────────────────────────── */
+.page { max-width: 1100px; margin: 0 auto; padding: 40px 24px 120px; }
+
+/* ── Section shell ────────────────────────────────────────── */
+.section { margin-bottom: 56px; }
+.section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: #888;
+  border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 20px;
+}
+.section-note {
+  font-size: 12px; color: #999; margin-bottom: 16px; line-height: 1.6;
+}
+
+/* ── Quick-ref bar ────────────────────────────────────────── */
+#qref {
+  position: sticky; top: 0; z-index: 9999;
+  background: #1a1a2e; color: #ccc;
+  font-size: 11px; line-height: 1.9; padding: 10px 20px;
+  display: flex; flex-wrap: wrap; gap: 0 32px;
+}
+#qref b { color: #4facfe; }
+#qref kbd {
+  background: #2d2d4e; border-radius: 3px;
+  padding: 1px 5px; font-size: 10px; color: #e0e0e0;
+}
+#qref a { color: #a78bfa; text-decoration: none; margin-left: 6px; }
+#qref a:hover { text-decoration: underline; }
+
+/* ── §1  Box-model variety ────────────────────────────────── */
+.bm-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+.bm-box {
+  background: white; display: flex; align-items: center;
+  justify-content: center; font-size: 11px; color: #666;
+  border-radius: 4px;
+}
+.bm-a { width:120px; height:80px;  padding:20px;   border:3px solid #6c63ff; margin:16px; }
+.bm-b { width:160px; height:100px; padding:8px 32px; border:1px solid #aaa;  margin:8px 24px; }
+.bm-c { width:80px;  height:80px;  padding:0;        border:8px double #ff6584; margin:4px; }
+.bm-d { width:200px; height:60px;  padding:12px 40px; border:1px solid #4facfe; margin:0; border-radius:30px; }
+.bm-e { width:60px;  height:60px;  padding:4px;      border:1px dashed #888; margin:24px 0; }
+
+/* ── §2  Flex gap ─────────────────────────────────────────── */
+.flex-gap-parent {
+  background: white; border-radius:10px; padding:24px;
+  display:flex; gap:20px; align-items:stretch;
+}
+.flex-gap-parent.large-gap { gap:48px; }
+.flex-gap-parent.mixed-margin { gap:12px; }
+.fg-item {
+  background:#ede9fe; flex:1; height:80px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; color:#6c63ff;
+}
+.fg-item.has-margin { margin:0 10px; }
+.fg-item.tall { height:140px; }
+.fg-item.narrow { flex:0 0 40px; }
+
+/* flex column */
+.flex-col-parent {
+  background:white; border-radius:10px; padding:24px;
+  display:flex; flex-direction:column; gap:16px; width:260px;
+}
+.fc-item {
+  background:#e0f2fe; height:48px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; color:#0369a1;
+}
+
+/* ── §3  CSS Grid ─────────────────────────────────────────── */
+.grid-a {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:16px; background:white; padding:24px; border-radius:10px;
+}
+.grid-b {
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr;
+  grid-template-rows:80px 80px;
+  gap:12px 24px; background:white; padding:24px; border-radius:10px;
+}
+.grid-c {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:auto;
+  gap:0; background:white; border-radius:10px; overflow:hidden;
+}
+.gc { background:#f3f4f6; display:flex; align-items:center; justify-content:center;
+  font-size:11px; color:#6b7280; border-radius:4px; height:70px; }
+.gc.span2 { grid-column:span 2; background:#ddd6fe; color:#6c63ff; }
+.gc.span3 { grid-column:span 3; background:#fce7f3; color:#db2777; }
+.gc-bordered { border:1px solid #e5e7eb; }
+
+/* ── §4  Deep nesting ─────────────────────────────────────── */
+.nest-l1 { background:#fff; border-radius:10px; padding:24px; border:1px solid #e0e0e0; }
+.nest-l2 { background:#f8f0ff; border-radius:8px; padding:20px; margin:12px; border:1px solid #d8b4fe; }
+.nest-l3 { background:#fef3c7; border-radius:6px; padding:16px; margin:8px; border:1px solid #fcd34d; }
+.nest-l4 { background:#dcfce7; border-radius:4px; padding:12px; margin:6px; border:1px solid #86efac; }
+.nest-label { font-size:10px; font-weight:700; color:#aaa; text-transform:uppercase; margin-bottom:4px; }
+
+/* ── §5  Transforms ───────────────────────────────────────── */
+.transforms-row { display:flex; gap:40px; align-items:center; flex-wrap:wrap; min-height:180px; }
+.tf-box {
+  width:100px; height:70px; display:flex; align-items:center; justify-content:center;
+  font-size:11px; border-radius:6px; font-weight:600;
+}
+.tf-rotate  { background:#fde68a; color:#92400e; transform:rotate(15deg); }
+.tf-scale   { background:#bbf7d0; color:#065f46; transform:scale(1.3); }
+.tf-skew    { background:#bfdbfe; color:#1e40af; transform:skewX(-15deg); }
+.tf-tx      { background:#fecaca; color:#991b1b; transform:translate(20px, -10px); }
+.tf-combo   { background:#e9d5ff; color:#5b21b6; transform:rotate(-8deg) scale(0.9) translate(10px,5px); }
+
+/* ── §6  Small elements (callout trigger) ─────────────────── */
+.small-row { display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+.sm {
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; color:#555; background:white; border-radius:3px;
+}
+.sm-xs  { width:24px;  height:24px;  padding:2px;    border:3px solid #6c63ff; margin:8px; }
+.sm-s   { width:40px;  height:20px;  padding:4px;    border:2px solid #ff6584; margin:12px 6px; }
+.sm-icon{ width:32px;  height:32px;  border-radius:50%; background:#4facfe; margin:6px; }
+.sm-bar { width:200px; height:8px;   background:#a3e635; border-radius:4px; margin:20px 0; }
+.sm-pill{ width:60px;  height:14px;  background:#fb923c; border-radius:7px; margin:10px; }
+
+/* ── §7  Near-edge elements ───────────────────────────────── */
+.edge-demo {
+  position:relative; height:260px; background:white;
+  border-radius:10px; overflow:hidden;
+}
+.edge-box {
+  position:absolute; width:80px; height:60px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; color:white;
+}
+.edge-tl { top:0;   left:0;   background:#6c63ff; border-radius:0 0 6px 0; }
+.edge-tr { top:0;   right:0;  background:#ff6584; border-radius:0 0 0 6px; }
+.edge-bl { bottom:0; left:0;  background:#4facfe; border-radius:0 6px 0 0; }
+.edge-br { bottom:0; right:0; background:#a8e063; border-radius:6px 0 0 0; color:#333; }
+.edge-c  { top:50%; left:50%; transform:translate(-50%,-50%); background:#f59e0b; border-radius:6px; }
+
+/* ── §8  Typography ───────────────────────────────────────── */
+.typo-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:16px;
+}
+.typo-card {
+  background:white; border-radius:8px; padding:20px;
+}
+.t1 { font-size:32px; font-weight:900; color:#1e1b4b; line-height:1.1; }
+.t2 { font-size:14px; font-weight:400; color:#374151; line-height:1.8; font-family:Georgia,serif; }
+.t3 { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#6b7280; }
+.t4 { font-size:20px; font-style:italic; color:#9333ea; line-height:1.4; font-family:"Courier New",monospace; }
+.t5 { font-size:13px; color:#0f766e; line-height:2; font-family:monospace; }
+.t6 { font-size:48px; font-weight:800; color:#f43f5e; opacity:.8; line-height:1; }
+
+/* ── §9  Position variants ────────────────────────────────── */
+.position-stage {
+  position:relative; height:220px; background:white;
+  border-radius:10px; overflow:hidden;
+}
+.pos-static  { background:#e0e7ff; border-radius:6px; padding:12px 16px; font-size:12px; margin:12px; display:inline-block; }
+.pos-relative { position:relative; top:20px; left:30px; background:#fce7f3; border-radius:6px; padding:12px 16px; font-size:12px; display:inline-block; }
+.pos-absolute { position:absolute; top:20px; right:20px; background:#dcfce7; border-radius:6px; padding:12px 16px; font-size:12px; border:2px solid #86efac; }
+.pos-sticky-demo {
+  height:140px; overflow-y:scroll; background:#fafafa;
+  border:1px solid #e5e7eb; border-radius:8px; padding:8px;
+}
+.pos-sticky-header {
+  position:sticky; top:0; background:#4f46e5; color:white;
+  padding:8px 12px; font-size:12px; border-radius:4px; z-index:1;
+}
+.pos-scroll-content { padding:8px; font-size:12px; color:#555; line-height:2.2; }
+
+/* ── §10  Z-index stack ───────────────────────────────────── */
+.z-stage { position:relative; height:160px; }
+.z-box {
+  position:absolute; width:120px; height:80px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:white;
+}
+.z1 { top:20px; left:0;   background:#6c63ff; z-index:1; }
+.z2 { top:40px; left:60px; background:#ff6584; z-index:2; }
+.z3 { top:10px; left:120px; background:#4facfe; z-index:3; }
+.z4 { top:60px; left:180px; background:#f59e0b; z-index:0; color:#333; }
+
+/* ── §11  Overflow / scroll ───────────────────────────────── */
+.overflow-h {
+  background:white; border-radius:8px; padding:16px;
+  overflow-x:auto; white-space:nowrap;
+}
+.overflow-h-inner { display:inline-flex; gap:12px; }
+.oh-item { width:120px; height:80px; border-radius:6px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
+
+.overflow-v-wrap { display:flex; gap:16px; }
+.overflow-v {
+  background:white; border-radius:8px; padding:16px;
+  overflow-y:auto; height:160px; flex:1;
+}
+.ov-item {
+  background:#f3f4f6; border-radius:4px; padding:12px 16px;
+  margin-bottom:8px; font-size:12px; color:#374151;
+}
+
+/* ── §12  Tall element (label clamp stress) ───────────────── */
+.tall-section {
+  display:flex; gap:20px;
+}
+.tall-el {
+  background:white; border-radius:10px; padding:24px;
+  width:200px; flex-shrink:0;
+  border:1px solid #e0e0e0;
+}
+.tall-child {
+  background:#eff6ff; border-radius:6px; padding:16px;
+  margin:12px 0; border:1px solid #bfdbfe;
+  font-size:12px; color:#1d4ed8;
+}
+.tall-child.last-child { margin-bottom:0; }
+
+/* ── §13  Inline / mixed ──────────────────────────────────── */
+.inline-demo {
+  background:white; border-radius:8px; padding:24px; line-height:2.4; font-size:14px;
+}
+.hl-a { background:#fef9c3; padding:2px 6px; border-radius:3px; }
+.hl-b { background:#dcfce7; padding:4px 10px; border-radius:3px; font-weight:700; }
+.hl-c { background:#fee2e2; padding:2px 8px; border-radius:3px; font-family:monospace; }
+.badge-inline {
+  display:inline-block; background:#6c63ff; color:white;
+  border-radius:20px; padding:2px 10px; font-size:11px; font-weight:700; margin:0 4px;
+}
+
+/* ── §14  Negative-margin / overlap ──────────────────────── */
+.neg-stage { position:relative; background:white; border-radius:10px; padding:32px; }
+.neg-a { background:#e0e7ff; border-radius:6px; padding:24px; margin-bottom:-20px; position:relative; z-index:1; }
+.neg-b { background:#fce7f3; border-radius:6px; padding:24px; margin-top:0; position:relative; z-index:2; }
+.neg-label { font-size:11px; color:#888; }
+
+/* ── §15  Flex wrap ───────────────────────────────────────── */
+.flex-wrap-parent {
+  background:white; border-radius:10px; padding:24px;
+  display:flex; flex-wrap:wrap; gap:12px;
+}
+.fw-item {
+  background:#f3f4f6; border-radius:6px; padding:12px 20px;
+  font-size:12px; color:#374151; font-weight:600;
+}
+.fw-item:nth-child(2n) { background:#ede9fe; color:#6c63ff; }
+.fw-item:nth-child(3n) { background:#fce7f3; color:#db2777; }
+
+/* ── Misc helpers ─────────────────────────────────────────── */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+label.row-label { display:block; font-size:11px; color:#aaa; margin-bottom:6px; }
 </style>
 </head>
 <body>
+
+<!-- ── Quick-ref bar ─────────────────────────────────────────── -->
+<div id="qref">
+  <div><b>Activate:</b> <kbd>Ctrl+Shift+M</kbd> / <kbd>Alt+M</kbd></div>
+  <div><b>Modes:</b> <kbd>1</kbd> Inspector &nbsp; <kbd>2</kbd> Guides &nbsp; <kbd>3</kbd> Cursor</div>
+  <div><b>Select:</b> Click · <kbd>Shift</kbd>+Click multi · Drag marquee · <kbd>Esc</kbd> clear</div>
+  <div><b>DOM nav:</b> <kbd>↑</kbd> parent &nbsp; <kbd>↓</kbd> child</div>
+  <div><b>Units:</b> <kbd>U</kbd> cycle &nbsp; Pencil btn = edit cycle</div>
+  <div><b>Panel:</b> <kbd>M</kbd> collapse/expand</div>
+  <div><b>Guides:</b> <kbd>H</kbd> horiz · <kbd>V</kbd> vert · <kbd>S</kbd> snap · <kbd>Q</kbd> clear · drag/arrow nudge</div>
+  <div>Jump:
+    <a href="#s1">Box model</a>
+    <a href="#s2">Flex gap</a>
+    <a href="#s3">Grid</a>
+    <a href="#s4">Nesting</a>
+    <a href="#s5">Transforms</a>
+    <a href="#s6">Small</a>
+    <a href="#s7">Edges</a>
+    <a href="#s8">Typography</a>
+    <a href="#s9">Position</a>
+    <a href="#s10">Z-index</a>
+    <a href="#s11">Overflow</a>
+    <a href="#s12">Tall</a>
+    <a href="#s13">Inline</a>
+    <a href="#s14">Negative margin</a>
+    <a href="#s15">Flex wrap</a>
+  </div>
+</div>
+
 <div class="page">
-  <h1>MeasureTool Test Page</h1>
-  <p class="subtitle">Enable the extension and hover over any element to start measuring</p>
 
-  <div class="instructions">
-    <strong style="color:#4facfe">How to use:</strong><br>
-    1. Click the 📐 icon in the browser toolbar to open the tool<br>
-    2. <span>Hover</span> over elements to view size and CSS properties<br>
-    3. <span>Click</span> to pin an element, then hover others to measure distance<br>
-    4. <code>Shift+Click</code> to select multiple elements<br>
-    5. Press <code>H</code> / <code>V</code> to add horizontal / vertical guides at cursor position<br>
-    6. Press <code>Q</code> to clear all guides, <code>Esc</code> to deselect<br>
-    7. Press <code>↑↓</code> to navigate parent / child in the DOM tree
-  </div>
-
-  <br>
-
-  <div class="cards">
-    <div class="card">
-      <h2>Card One</h2>
-      <p>Hover over this card to inspect its padding, border, and margin in the box model panel.</p>
-      <span class="badge">Badge</span>
+  <!-- ─── §1  Box-model variety ──────────────────────────────── -->
+  <section class="section" id="s1">
+    <div class="section-title">§1 — Box Model Variety</div>
+    <p class="section-note">
+      Each element has distinct margin / border / padding / content values.
+      Select one to see the four-zone overlay and numeric labels in the callout / panel.
+    </p>
+    <div class="bm-row">
+      <div class="bm-box bm-a">padding 20 · border 3 · margin 16</div>
+      <div class="bm-box bm-b">padding 8/32 · border 1 · margin 8/24</div>
+      <div class="bm-box bm-c">padding 0 · border 8 double · margin 4</div>
+      <div class="bm-box bm-d">padding 12/40 · border 1 · radius 30</div>
+      <div class="bm-box bm-e">padding 4 · dashed border · margin 24/0</div>
     </div>
-    <div class="card">
-      <h2>Card Two</h2>
-      <p>Click to pin this card, then hover the next card to see the distance measurement line between them.</p>
-    </div>
-    <div class="card">
-      <h2>Card Three</h2>
-      <p>Use Shift+Click to select multiple cards and measure the boundary distance of the entire group.</p>
-    </div>
-  </div>
+  </section>
 
-  <div class="grid-section">
-    <div class="box">Box 1</div>
-    <div class="box">Box 2 (selected style)</div>
-    <div class="box">Box 3</div>
-    <div class="box">Box 4</div>
-    <div class="box">Box 5 (filled)</div>
-    <div class="box">Box 6</div>
-  </div>
-
-  <div class="flex-section">
-    <div class="sidebar">
-      <strong>Sidebar</strong>
-      <p style="font-size:12px;color:#888;margin-top:8px">180px fixed width<br>padding 16px</p>
+  <!-- ─── §2  Flex gap ───────────────────────────────────────── -->
+  <section class="section" id="s2">
+    <div class="section-title">§2 — Flex Gap & Margin Labels</div>
+    <p class="section-note">
+      Select the flex container (↑ from a child) to see gap/margin labels.
+      Row A: equal gap. Row B: large gap (stress label spacing). Row C: mixed item margins.
+      Row D: flex-column with gap. Row E: narrow items (thin-strip callout trigger).
+    </p>
+    <div class="section-note" style="margin-top:-8px">Label A — equal gap 20px</div>
+    <div class="flex-gap-parent" style="margin-bottom:16px">
+      <div class="fg-item">A</div>
+      <div class="fg-item">B</div>
+      <div class="fg-item">C</div>
+      <div class="fg-item">D</div>
     </div>
-    <div class="content-area">
-      <p>The main content area uses flex: 1 to fill the remaining space. Try measuring the distance from sidebar to content — it should be 32px gap.</p>
-      <p>Click this text area to inspect its margin and padding values in the box model panel.</p>
+
+    <div class="section-note">Label B — large gap 48px</div>
+    <div class="flex-gap-parent large-gap" style="margin-bottom:16px">
+      <div class="fg-item">A</div>
+      <div class="fg-item">B</div>
+      <div class="fg-item">C</div>
+    </div>
+
+    <div class="section-note">Label C — items with explicit margin 10px</div>
+    <div class="flex-gap-parent mixed-margin" style="margin-bottom:16px">
+      <div class="fg-item has-margin">M</div>
+      <div class="fg-item has-margin">M</div>
+      <div class="fg-item has-margin">M</div>
+      <div class="fg-item has-margin">M</div>
+    </div>
+
+    <div class="two-col">
       <div>
-        <span class="btn">Primary</span>
-        <span class="btn outline">Outline</span>
+        <div class="section-note">Label D — flex-column with gap 16px</div>
+        <div class="flex-col-parent">
+          <div class="fc-item">Row 1</div>
+          <div class="fc-item">Row 2</div>
+          <div class="fc-item">Row 3</div>
+          <div class="fc-item">Row 4</div>
+        </div>
+      </div>
+      <div>
+        <div class="section-note">Label E — narrow items (thin strip)</div>
+        <div class="flex-gap-parent" style="gap:8px; align-items:stretch">
+          <div class="fg-item narrow">·</div>
+          <div class="fg-item narrow">·</div>
+          <div class="fg-item narrow">·</div>
+          <div class="fg-item narrow">·</div>
+          <div class="fg-item narrow">·</div>
+          <div class="fg-item narrow">·</div>
+          <div class="fg-item" style="flex:1">Wide item</div>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="spacing-demo">
-    <div class="demo-box"></div>
-    <div>
-      <div class="demo-box2"></div>
+  <!-- ─── §3  CSS Grid ───────────────────────────────────────── -->
+  <section class="section" id="s3">
+    <div class="section-title">§3 — CSS Grid Overlay</div>
+    <p class="section-note">
+      Select a grid container to see column/row boundary lines.
+      Grid A: 4-col equal, gap 16. Grid B: 2fr 1fr 1fr with row height. Grid C: spanning cells, gap 0.
+    </p>
+
+    <label class="row-label">Grid A — 4 equal columns, gap 16</label>
+    <div class="grid-a" style="margin-bottom:20px">
+      <div class="gc">A1</div>
+      <div class="gc">A2</div>
+      <div class="gc">A3</div>
+      <div class="gc">A4</div>
+      <div class="gc">A5</div>
+      <div class="gc">A6</div>
+      <div class="gc">A7</div>
+      <div class="gc">A8</div>
     </div>
-    <div class="demo-box"></div>
-  </div>
+
+    <label class="row-label">Grid B — 2fr 1fr 1fr, fixed row heights, gap 12/24</label>
+    <div class="grid-b" style="margin-bottom:20px">
+      <div class="gc">B1</div>
+      <div class="gc">B2</div>
+      <div class="gc">B3</div>
+      <div class="gc">B4</div>
+      <div class="gc">B5</div>
+      <div class="gc">B6</div>
+    </div>
+
+    <label class="row-label">Grid C — spanning cells, gap 0</label>
+    <div class="grid-c">
+      <div class="gc gc-bordered span3">C1 (span 3)</div>
+      <div class="gc gc-bordered">C2</div>
+      <div class="gc gc-bordered span2">C3 (span 2)</div>
+      <div class="gc gc-bordered span2">C4 (span 2)</div>
+      <div class="gc gc-bordered">C5</div>
+      <div class="gc gc-bordered span3">C6 (span 3)</div>
+    </div>
+  </section>
+
+  <!-- ─── §4  Deep nesting ───────────────────────────────────── -->
+  <section class="section" id="s4">
+    <div class="section-title">§4 — Nested DOM (↑↓ Navigation)</div>
+    <p class="section-note">
+      Click the innermost element (Level 4), then press ↑ to traverse up through each ancestor.
+      Press ↓ to go back down. Inspector panel should update at each level.
+    </p>
+    <div class="nest-l1">
+      <div class="nest-label">Level 1 — padding 24 · margin 0</div>
+      <div class="nest-l2">
+        <div class="nest-label">Level 2 — padding 20 · margin 12</div>
+        <div class="nest-l3">
+          <div class="nest-label">Level 3 — padding 16 · margin 8</div>
+          <div class="nest-l4">
+            <div class="nest-label">Level 4 — padding 12 · margin 6</div>
+            <span style="font-size:12px; color:#065f46">← Start here, then press ↑ to navigate up</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── §5  Transforms ─────────────────────────────────────── -->
+  <section class="section" id="s5">
+    <div class="section-title">§5 — CSS Transforms (Label Clamping)</div>
+    <p class="section-note">
+      Transformed elements: hover/select each to verify that box model labels and distance chips
+      appear within the viewport despite CSS transforms shifting the rendered position.
+    </p>
+    <div class="transforms-row">
+      <div>
+        <div class="section-note" style="margin-bottom:4px">rotate(15deg)</div>
+        <div class="tf-box tf-rotate">Rotate</div>
+      </div>
+      <div>
+        <div class="section-note" style="margin-bottom:4px">scale(1.3)</div>
+        <div class="tf-box tf-scale">Scale</div>
+      </div>
+      <div>
+        <div class="section-note" style="margin-bottom:4px">skewX(-15deg)</div>
+        <div class="tf-box tf-skew">Skew</div>
+      </div>
+      <div>
+        <div class="section-note" style="margin-bottom:4px">translate(20,-10)</div>
+        <div class="tf-box tf-tx">Translate</div>
+      </div>
+      <div>
+        <div class="section-note" style="margin-bottom:4px">rotate+scale+translate</div>
+        <div class="tf-box tf-combo">Combo</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── §6  Small elements (callout trigger) ──────────────── -->
+  <section class="section" id="s6">
+    <div class="section-title">§6 — Small Elements (Callout Panel Trigger)</div>
+    <p class="section-note">
+      These elements are too small to display box-model labels inline —
+      selecting them should redirect labels into the floating callout panel.
+    </p>
+    <div class="small-row">
+      <div>
+        <div class="section-note" style="margin-bottom:4px">24×24, border 3, margin 8</div>
+        <div class="sm sm-xs">xs</div>
+      </div>
+      <div>
+        <div class="section-note" style="margin-bottom:4px">40×20, border 2, margin 12/6</div>
+        <div class="sm sm-s">sm</div>
+      </div>
+      <div>
+        <div class="section-note" style="margin-bottom:4px">32×32 circle, no border</div>
+        <div class="sm sm-icon"></div>
+      </div>
+      <div>
+        <div class="section-note" style="margin-bottom:4px">200×8 bar, margin 20</div>
+        <div class="sm sm-bar"></div>
+      </div>
+      <div>
+        <div class="section-note" style="margin-bottom:4px">60×14 pill, margin 10</div>
+        <div class="sm sm-pill"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── §7  Near-edge elements ─────────────────────────────── -->
+  <section class="section" id="s7">
+    <div class="section-title">§7 — Viewport-Edge Elements</div>
+    <p class="section-note">
+      Boxes are pinned to the corners of the demo area. Select them to verify that labels
+      and callout panels flip / clamp to stay visible instead of overflowing off-screen.
+    </p>
+    <div class="edge-demo">
+      <div class="edge-box edge-tl">TL</div>
+      <div class="edge-box edge-tr">TR</div>
+      <div class="edge-box edge-bl">BL</div>
+      <div class="edge-box edge-br">BR</div>
+      <div class="edge-box edge-c">Center</div>
+    </div>
+  </section>
+
+  <!-- ─── §8  Typography ─────────────────────────────────────── -->
+  <section class="section" id="s8">
+    <div class="section-title">§8 — Typography Variety (Inspector Panel)</div>
+    <p class="section-note">
+      Select each card to verify the Typography section in the inspector panel correctly
+      reads font-family, size, weight, line-height, color, letter-spacing.
+    </p>
+    <div class="typo-grid">
+      <div class="typo-card">
+        <p class="t1">Display<br>Heading</p>
+        <p class="section-note" style="margin-top:8px">32px · weight 900 · tight lh</p>
+      </div>
+      <div class="typo-card">
+        <p class="t2">Body text using Georgia serif, weight 400, line-height 1.8. Long enough to show multi-line rendering behavior clearly.</p>
+        <p class="section-note" style="margin-top:8px">14px · Georgia · lh 1.8</p>
+      </div>
+      <div class="typo-card">
+        <p class="t3">Uppercase label tracking</p>
+        <p class="section-note" style="margin-top:8px">11px · 700 · letter-spacing .1em</p>
+      </div>
+      <div class="typo-card">
+        <p class="t4">Italic mono display text with color and line-height</p>
+        <p class="section-note" style="margin-top:8px">20px · italic · Courier New</p>
+      </div>
+      <div class="typo-card">
+        <p class="t5">Monospace code block style with high line-height and teal color for contrast</p>
+        <p class="section-note" style="margin-top:8px">13px · monospace · lh 2</p>
+      </div>
+      <div class="typo-card">
+        <p class="t6">XL</p>
+        <p class="section-note" style="margin-top:8px">48px · weight 800 · opacity .8</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── §9  Position variants ──────────────────────────────── -->
+  <section class="section" id="s9">
+    <div class="section-title">§9 — Position Variants</div>
+    <p class="section-note">
+      Tests static, relative, absolute, and sticky positioned elements.
+      Inspector should show the correct <code>position</code> value and viewport coordinates.
+    </p>
+    <div class="two-col">
+      <div>
+        <label class="row-label">static / relative / absolute</label>
+        <div class="position-stage">
+          <span class="pos-static">Static</span>
+          <span class="pos-relative">Relative (top+20, left+30)</span>
+          <div class="pos-absolute">Absolute<br>(top:20, right:20)</div>
+        </div>
+      </div>
+      <div>
+        <label class="row-label">sticky header (scroll this box)</label>
+        <div class="pos-sticky-demo">
+          <div class="pos-sticky-header">Sticky header — position: sticky; top: 0</div>
+          <div class="pos-scroll-content">
+            Line 1<br>Line 2<br>Line 3<br>Line 4<br>Line 5<br>
+            Line 6<br>Line 7<br>Line 8<br>Line 9<br>Line 10<br>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── §10  Z-index stack ─────────────────────────────────── -->
+  <section class="section" id="s10">
+    <div class="section-title">§10 — Z-Index Stack</div>
+    <p class="section-note">
+      Four overlapping boxes with z-index 0–3. Hover each in turn; picker should select the
+      topmost visible element at the cursor, not the one underneath.
+    </p>
+    <div style="background:white; border-radius:10px; padding:24px;">
+      <div class="z-stage">
+        <div class="z-box z1">z-index: 1</div>
+        <div class="z-box z2">z-index: 2</div>
+        <div class="z-box z3">z-index: 3</div>
+        <div class="z-box z4">z-index: 0</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── §11  Overflow / scroll ─────────────────────────────── -->
+  <section class="section" id="s11">
+    <div class="section-title">§11 — Overflow / Scroll Containers</div>
+    <p class="section-note">
+      Horizontal scroll row and vertical scroll column.
+      Select an item inside to verify viewport coordinates are correct even inside a scroll container.
+    </p>
+    <label class="row-label">Horizontal scroll</label>
+    <div class="overflow-h" style="margin-bottom:16px">
+      <div class="overflow-h-inner">
+        <div class="oh-item" style="background:#e0e7ff; color:#4338ca">Item 1</div>
+        <div class="oh-item" style="background:#fce7f3; color:#db2777">Item 2</div>
+        <div class="oh-item" style="background:#dcfce7; color:#166534">Item 3</div>
+        <div class="oh-item" style="background:#fef9c3; color:#713f12">Item 4</div>
+        <div class="oh-item" style="background:#ffe4e6; color:#9f1239">Item 5</div>
+        <div class="oh-item" style="background:#e0f2fe; color:#075985">Item 6</div>
+        <div class="oh-item" style="background:#fdf4ff; color:#7e22ce">Item 7</div>
+        <div class="oh-item" style="background:#fff7ed; color:#9a3412">Item 8</div>
+      </div>
+    </div>
+
+    <div class="overflow-v-wrap">
+      <div>
+        <label class="row-label">Vertical scroll (height 160px)</label>
+        <div class="overflow-v">
+          <div class="ov-item">Row A — padding 12/16</div>
+          <div class="ov-item">Row B</div>
+          <div class="ov-item">Row C</div>
+          <div class="ov-item">Row D</div>
+          <div class="ov-item">Row E</div>
+          <div class="ov-item">Row F</div>
+          <div class="ov-item">Row G</div>
+        </div>
+      </div>
+      <div style="flex:1">
+        <label class="row-label">Notes</label>
+        <div style="background:white; border-radius:8px; padding:20px; font-size:12px; color:#6b7280; line-height:1.8">
+          Scroll the container, then select items in the scrolled state.
+          The <code>top/left</code> values in the inspector show viewport-relative coordinates
+          (<code>getBoundingClientRect</code>), so they update as you scroll.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── §12  Tall element (label-clamp stress) ─────────────── -->
+  <section class="section" id="s12">
+    <div class="section-title">§12 — Tall Container (Bottom-Edge Label Clamp)</div>
+    <p class="section-note">
+      Long element with many children. Select the container, then select individual children
+      near the bottom — labels should clamp above the viewport floor, not disappear off-screen.
+      Multi-select several children to verify distance line labels don't collide.
+    </p>
+    <div class="tall-section">
+      <div class="tall-el" style="min-height:600px">
+        <strong style="font-size:12px">Tall Container</strong>
+        <div class="tall-child">Child 1 · margin 12</div>
+        <div class="tall-child">Child 2 · margin 12</div>
+        <div class="tall-child">Child 3 · margin 12</div>
+        <div class="tall-child">Child 4 · margin 12</div>
+        <div class="tall-child">Child 5 · margin 12</div>
+        <div class="tall-child">Child 6 · margin 12</div>
+        <div class="tall-child">Child 7 · margin 12</div>
+        <div class="tall-child">Child 8 · margin 12</div>
+        <div class="tall-child last-child">Child 9 · margin 12</div>
+      </div>
+      <div style="flex:1">
+        <label class="row-label">Wide content beside tall element</label>
+        <div style="background:white; border-radius:10px; padding:24px; margin-bottom:16px">
+          <p style="font-size:13px; color:#374151; line-height:1.8; margin:0">
+            Select the tall container on the left to see all 9 child margin labels.
+            When children near the bottom are selected, their labels should flip upward
+            and the slot-collision detector should prevent labels from overlapping.
+          </p>
+        </div>
+        <div style="background:white; border-radius:10px; padding:24px; display:flex; flex-direction:column; gap:12px">
+          <div style="background:#e0f2fe; border-radius:6px; padding:14px; font-size:12px; color:#0c4a6e">Side Item A — border:1px solid #7dd3fc; margin:8px 0</div>
+          <div style="background:#fef9c3; border-radius:6px; padding:14px; font-size:12px; color:#713f12">Side Item B</div>
+          <div style="background:#fce7f3; border-radius:6px; padding:14px; font-size:12px; color:#831843">Side Item C</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── §13  Inline / mixed ────────────────────────────────── -->
+  <section class="section" id="s13">
+    <div class="section-title">§13 — Inline & Mixed Content</div>
+    <p class="section-note">
+      Inline elements and inline-block badges inside a block paragraph.
+      Hover the inline spans to verify the picker correctly isolates them.
+    </p>
+    <div class="inline-demo">
+      This paragraph contains <span class="hl-a">highlighted text A</span> and some
+      <span class="hl-b">bold highlight B</span> plus an inline
+      <span class="hl-c">code span C</span> alongside a
+      <span class="badge-inline">badge</span> and more regular text. Select any
+      highlighted region to see its individual padding and background in the inspector.
+      The containing <code>&lt;div&gt;</code> has padding 24px on all sides.
+    </div>
+  </section>
+
+  <!-- ─── §14  Negative margin / overlap ────────────────────── -->
+  <section class="section" id="s14">
+    <div class="section-title">§14 — Negative Margin / Overlap</div>
+    <p class="section-note">
+      Element B overlaps element A via <code>margin-bottom: -20px</code> on A.
+      Both elements should be selectable individually; inspector should report the actual margin values.
+    </p>
+    <div class="neg-stage">
+      <div class="neg-a">
+        <div class="neg-label">Element A — margin-bottom: −20px</div>
+        <p style="margin:8px 0 0; font-size:12px; color:#374151">Padding 24px. The bottom margin is −20px, causing element B to overlap.</p>
+      </div>
+      <div class="neg-b">
+        <div class="neg-label">Element B — z-index: 2 (overlaps A)</div>
+        <p style="margin:8px 0 0; font-size:12px; color:#374151">Padding 24px. Rendered on top due to higher z-index.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── §15  Flex wrap ─────────────────────────────────────── -->
+  <section class="section" id="s15">
+    <div class="section-title">§15 — Flex Wrap (Multi-Row Gap Labels)</div>
+    <p class="section-note">
+      A flex-wrap container with many items forcing multiple rows.
+      Select the container to verify that gap labels appear on every row and column,
+      not just the first line.
+    </p>
+    <div class="flex-wrap-parent">
+      <div class="fw-item">Alpha</div>
+      <div class="fw-item">Beta</div>
+      <div class="fw-item">Gamma Delta</div>
+      <div class="fw-item">Epsilon</div>
+      <div class="fw-item">Zeta Eta</div>
+      <div class="fw-item">Theta</div>
+      <div class="fw-item">Iota Kappa</div>
+      <div class="fw-item">Lambda</div>
+      <div class="fw-item">Mu Nu</div>
+      <div class="fw-item">Xi Omicron</div>
+      <div class="fw-item">Pi Rho</div>
+      <div class="fw-item">Sigma Tau</div>
+      <div class="fw-item">Upsilon</div>
+      <div class="fw-item">Phi Chi</div>
+      <div class="fw-item">Psi</div>
+      <div class="fw-item">Omega</div>
+    </div>
+  </section>
+
+  <!-- ─── Guides test pad ────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-title">Guides Mode Test Area</div>
+    <p class="section-note">
+      Switch to Guides mode (<kbd style="background:#2d2d4e;color:#e0e0e0;padding:1px 5px;border-radius:3px;font-size:10px">2</kbd>).
+      Press <kbd style="background:#2d2d4e;color:#e0e0e0;padding:1px 5px;border-radius:3px;font-size:10px">H</kbd> /
+      <kbd style="background:#2d2d4e;color:#e0e0e0;padding:1px 5px;border-radius:3px;font-size:10px">V</kbd> to place guides through the elements below.
+      Enable snap (<kbd style="background:#2d2d4e;color:#e0e0e0;padding:1px 5px;border-radius:3px;font-size:10px">S</kbd>)
+      and drag a guide near a box edge to test snapping.
+      Place two parallel guides to see distance labels between them.
+    </p>
+    <div style="background:white; border-radius:10px; padding:40px; display:grid; grid-template-columns:repeat(5,1fr); gap:24px; min-height:200px">
+      <div style="background:#e0e7ff; border-radius:6px; height:80px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#4338ca">G1</div>
+      <div style="background:#dcfce7; border-radius:6px; height:120px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#166534">G2</div>
+      <div style="background:#fce7f3; border-radius:6px; height:60px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#db2777">G3</div>
+      <div style="background:#fef9c3; border-radius:6px; height:100px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#713f12">G4</div>
+      <div style="background:#ffe4e6; border-radius:6px; height:80px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#9f1239">G5</div>
+    </div>
+  </section>
+
+  <!-- ─── Multi-select stress ────────────────────────────────── -->
+  <section class="section">
+    <div class="section-title">Multi-select & Marquee Stress</div>
+    <p class="section-note">
+      Drag a marquee to select all boxes at once. Then Shift+Click individual boxes to refine the selection.
+      Distance lines should appear between each selected element pair.
+    </p>
+    <div style="background:white; border-radius:10px; padding:32px; display:grid; grid-template-columns:repeat(6,1fr); gap:20px">
+      <div style="background:#ddd6fe; height:64px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#5b21b6; font-weight:700">M1</div>
+      <div style="background:#fde68a; height:64px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#92400e; font-weight:700">M2</div>
+      <div style="background:#bbf7d0; height:64px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#065f46; font-weight:700">M3</div>
+      <div style="background:#fecaca; height:64px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#991b1b; font-weight:700">M4</div>
+      <div style="background:#bfdbfe; height:64px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#1e40af; font-weight:700">M5</div>
+      <div style="background:#d1fae5; height:64px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#065f46; font-weight:700">M6</div>
+    </div>
+  </section>
+
 </div>
 </body>
 </html>
