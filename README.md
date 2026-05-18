@@ -17,7 +17,7 @@ MeasureTool is a Chrome extension that overlays measurement data directly on any
 - **Layout Gap Visualization** — renders flex/grid gaps and inter-element margins as colored regions with labels
 - **CSS Grid Lines** — overlays column and row boundaries for grid containers
 - **DOM Navigation** — traverse parent/child elements with arrow keys
-- **8 Measurement Units** — px, rem, vw, vh, pt, in, cm, mm; cycle with `U`
+- **8 Measurement Units** — px, rem, vw, vh, pt, in, cm, mm; press `U` to cycle through a configurable subset (default: px → rem → vw → vh)
 - **Light & Dark Themes** — adapts to your preference
 - **Fully Local** — no network requests, no data collection
 
@@ -139,7 +139,7 @@ Suspends all MeasureTool interaction so you can use the page normally — click 
 | `2` | Switch to Guides mode |
 | `3` | Switch to Cursor mode |
 | `M` | Collapse / expand the control panel |
-| `U` | Cycle measurement unit (px → rem → vw → vh → pt → in → cm → mm) |
+| `U` | Cycle through the active unit set (default: px → rem → vw → vh) |
 
 ### Inspector Mode
 
@@ -168,7 +168,18 @@ Suspends all MeasureTool interaction so you can use the page normally — click 
 
 ## Measurement Units
 
-Press `U` to cycle through all available units. The rem root value (default 16 px) can be changed in the Settings panel.
+Press `U` to cycle through the active unit set. The default cycle is **px → rem → vw → vh**.
+
+**Customizing the cycle**
+
+In the Settings panel, the Units row shows all eight available units. Click the **pencil icon** (✎) at the far right to enter cycle-edit mode. In this mode:
+
+- Units **highlighted in cyan** are included in the `U`-key cycle.
+- **Dimmed** units are excluded.
+- Click any unit button to add or remove it from the cycle.
+- Click the pencil icon again to exit cycle-edit mode.
+
+The cycle configuration is saved and persists across sessions. The rem root value (default 16 px) can also be changed in the Settings panel.
 
 | Unit | Description |
 |------|-------------|
@@ -226,7 +237,7 @@ Drag the vertical divider between the Box Model column and the Properties column
 | Setting | Description |
 |---------|-------------|
 | Auto Position | Snap panel to nearest grid position when dragged |
-| Units | Select the default measurement unit |
+| Units | All 8 units shown as buttons; click to set the active unit. Click the pencil icon to enter cycle-edit mode and choose which units the `U` key cycles through. |
 | Rem Root | Set the base font size used for rem conversions (1–512 px) |
 | Theme | Switch between Light and Dark color schemes |
 
@@ -271,7 +282,7 @@ MeasureTool 是一款 Chrome 擴充功能，可在任何網頁上直接疊加顯
 - **佈局間隙視覺化** — 以彩色色塊標示 flex/grid 間隙與元素間距，並顯示數值標籤
 - **CSS Grid 線條** — 疊加顯示 Grid 容器的欄與列邊界
 - **DOM 導航** — 使用方向鍵在父/子元素之間切換
-- **8 種測量單位** — px、rem、vw、vh、pt、in、cm、mm；按 `U` 循環切換
+- **8 種測量單位** — px、rem、vw、vh、pt、in、cm、mm；按 `U` 循環切換可自訂的單位組合（預設：px → rem → vw → vh）
 - **亮色 / 暗色主題** — 依個人偏好自由切換
 - **完全本地運作** — 無網路請求、無任何資料收集
 
@@ -393,7 +404,7 @@ MeasureTool 會自動在相鄰的平行參考線之間繪製距離標籤（水�
 | `2` | 切換至參考線模式 |
 | `3` | 切換至游標模式 |
 | `M` | 摺疊 / 展開控制面板 |
-| `U` | 循環切換測量單位（px → rem → vw → vh → pt → in → cm → mm） |
+| `U` | 循環切換目前啟用的單位組合（預設：px → rem → vw → vh） |
 
 ### 檢查器模式
 
@@ -422,7 +433,18 @@ MeasureTool 會自動在相鄰的平行參考線之間繪製距離標籤（水�
 
 ## 測量單位
 
-按 `U` 循環切換所有可用單位。rem 根值（預設 16 px）可在設定面板中調整。
+按 `U` 循環切換目前啟用的單位組合。預設循環為 **px → rem → vw → vh**。
+
+**自訂循環單位**
+
+在設定面板的 UNITS 列中，可以看到全部八個可用單位。點擊最右側的**鉛筆圖示**（✎）進入循環編輯模式：
+
+- **青色邊框**的單位表示已加入 `U` 鍵循環。
+- **灰暗顯示**的單位表示未加入循環。
+- 點擊任意單位按鈕即可加入或移除。
+- 再次點擊鉛筆圖示可離開編輯模式。
+
+循環設定會自動儲存並在下次開啟時還原。rem 根值（預設 16 px）亦可在設定面板中調整。
 
 | 單位 | 說明 |
 |------|------|
@@ -480,7 +502,7 @@ MeasureTool 會自動在相鄰的平行參考線之間繪製距離標籤（水�
 | 設定 | 說明 |
 |------|------|
 | 自動定位 | 拖動時將面板吸附至最近的預設位置 |
-| 測量單位 | 選擇預設測量單位 |
+| 測量單位 | 顯示全部 8 個單位按鈕；點擊可切換目前單位。點擊鉛筆圖示進入循環編輯模式，選擇 `U` 鍵要循環的單位。 |
 | Rem 根值 | 設定用於 rem 換算的基礎字體大小（1–512 px） |
 | 主題 | 切換亮色或暗色配色方案 |
 
