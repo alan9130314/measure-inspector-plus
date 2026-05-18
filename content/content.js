@@ -2274,6 +2274,8 @@
     const skip = ['none', 'table-cell', 'table-row', 'table-column', 'table-caption',
                   'table-row-group', 'table-header-group', 'table-footer-group', 'table-column-group'];
     if (skip.includes(display)) return;
+    // gap / flex distributed space only apply to flex & grid formatting contexts
+    if (!isFlex && !isGrid) return;
 
     const children = Array.from(container.children).filter(ch => {
       if (ch.closest('#mt-root')) return false;
