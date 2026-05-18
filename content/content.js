@@ -2265,6 +2265,44 @@
           pushVSegs(rows[i], rows[i + 1], maxBottom, minTop);
         }
       }
+
+      // Edge margins: outermost children vs. parent (H leading/trailing per row)
+      rows.forEach(row => {
+        const sorted  = row.slice().sort((a, b) => a.left - b.left);
+        const first   = sorted[0];
+        const last    = sorted[sorted.length - 1];
+        const firstEl = rectToEl.get(first);
+        const lastEl  = rectToEl.get(last);
+        const ml = firstEl ? (parseFloat(window.getComputedStyle(firstEl).marginLeft)  || 0) : 0;
+        const mr = lastEl  ? (parseFloat(window.getComputedStyle(lastEl).marginRight)  || 0) : 0;
+        if (ml > 0.5) {
+          segs.push({ x1: first.left - ml, y1: cR.top, x2: first.left, y2: cR.bottom, kind: 'margin' });
+          labels.push({ x1: first.left - ml, y1: cR.top, x2: first.left, y2: cR.bottom, size: ml, axis: 'h', kind: 'margin' });
+        }
+        if (mr > 0.5) {
+          segs.push({ x1: last.right, y1: cR.top, x2: last.right + mr, y2: cR.bottom, kind: 'margin' });
+          labels.push({ x1: last.right, y1: cR.top, x2: last.right + mr, y2: cR.bottom, size: mr, axis: 'h', kind: 'margin' });
+        }
+      });
+      // V leading (first row margin-top) and trailing (last row margin-bottom)
+      {
+        const firstRow = rows[0];
+        const lastRow  = rows[rows.length - 1];
+        const maxMt = Math.max(0, ...firstRow.map(r => rectToEl.get(r)).filter(Boolean)
+          .map(el => parseFloat(window.getComputedStyle(el).marginTop) || 0));
+        const maxMb = Math.max(0, ...lastRow.map(r => rectToEl.get(r)).filter(Boolean)
+          .map(el => parseFloat(window.getComputedStyle(el).marginBottom) || 0));
+        const firstRowMinTop   = Math.min(...firstRow.map(r => r.top));
+        const lastRowMaxBottom = Math.max(...lastRow.map(r => r.bottom));
+        if (maxMt > 0.5) {
+          segs.push({ x1: cR.left, y1: firstRowMinTop - maxMt, x2: cR.right, y2: firstRowMinTop, kind: 'margin' });
+          labels.push({ x1: cR.left, y1: firstRowMinTop - maxMt, x2: cR.right, y2: firstRowMinTop, size: maxMt, axis: 'v', kind: 'margin' });
+        }
+        if (maxMb > 0.5) {
+          segs.push({ x1: cR.left, y1: lastRowMaxBottom, x2: cR.right, y2: lastRowMaxBottom + maxMb, kind: 'margin' });
+          labels.push({ x1: cR.left, y1: lastRowMaxBottom, x2: cR.right, y2: lastRowMaxBottom + maxMb, size: maxMb, axis: 'v', kind: 'margin' });
+        }
+      }
     } else {
       const seenV = new Set();
       groupByCol(rects).forEach(col => {
@@ -2296,6 +2334,25 @@
           labels.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: b.top, size: gap, axis: 'v', kind: labelKind });
         });
       });
+
+      // V leading / trailing margins for flex-column
+      const colSorted  = rects.slice().sort((a, b) => a.top - b.top);
+      const colFirstEl = rectToEl.get(colSorted[0]);
+      const colLastEl  = rectToEl.get(colSorted[colSorted.length - 1]);
+      const colLeadMt  = colFirstEl ? (parseFloat(window.getComputedStyle(colFirstEl).marginTop)    || 0) : 0;
+      const colTrailMb = colLastEl  ? (parseFloat(window.getComputedStyle(colLastEl).marginBottom)  || 0) : 0;
+      if (colLeadMt > 0.5) {
+        const y2 = colSorted[0].top;
+        const y1 = y2 - colLeadMt;
+        segs.push({ x1: cR.left, y1, x2: cR.right, y2, kind: 'margin' });
+        labels.push({ x1: cR.left, y1, x2: cR.right, y2, size: colLeadMt, axis: 'v', kind: 'margin' });
+      }
+      if (colTrailMb > 0.5) {
+        const y1 = colSorted[colSorted.length - 1].bottom;
+        const y2 = y1 + colTrailMb;
+        segs.push({ x1: cR.left, y1, x2: cR.right, y2, kind: 'margin' });
+        labels.push({ x1: cR.left, y1, x2: cR.right, y2, size: colTrailMb, axis: 'v', kind: 'margin' });
+      }
     }
 
     if (!segs.length) return;
