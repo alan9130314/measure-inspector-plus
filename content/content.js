@@ -1303,18 +1303,23 @@
     labelSlots.push({ cx, cy });
   }
 
-  function findFreeLabelSlot(cx, cy, axis) {
-    const OVL_W = 40, OVL_H = 16, STEP = METRIC_CHIP_H + 4;
+  function findFreeLabelSlot(cx, cy, axis, vw = 1e9, vh = 1e9) {
+    const OVL_W = 48, OVL_H = 18, STEP = METRIC_CHIP_H + 4;
     const hit = (px, py) => labelSlots.some(s =>
       Math.abs(px - s.cx) < OVL_W && Math.abs(py - s.cy) < OVL_H
     );
     if (!hit(cx, cy)) return { cx, cy };
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 8; i++) {
       const off = i * STEP;
-      const tries = axis === 'h'
+      const candidates = axis === 'h'
         ? [{ cx, cy: cy - off }, { cx, cy: cy + off }]
         : [{ cx: cx + off, cy }, { cx: cx - off, cy }];
-      for (const t of tries) {
+      // Try in-viewport candidates first to avoid clamping two slots to the same position
+      const inV = (t) => axis === 'h'
+        ? (t.cy >= 4 && t.cy <= vh - 4)
+        : (t.cx >= 4 && t.cx <= vw - 4);
+      const ordered = [...candidates.filter(inV), ...candidates.filter(t => !inV(t))];
+      for (const t of ordered) {
         if (!hit(t.cx, t.cy)) return t;
       }
     }
@@ -2292,6 +2297,7 @@
       drawBmCallout(ovfItems, { l: cR.left, t: cR.top, r: cR.right, b: cR.bottom });
     } else {
       labels.forEach(({ x1, y1, x2, y2, size, axis, kind }) => {
+        if (y1 > vh || y2 < 0) return; // strip entirely outside viewport — no canvas hatch, no label
         addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, kind);
       });
     }
@@ -2326,11 +2332,17 @@
         tfm = 'translate(-50%, 4px)';
         baseCX = lx; baseCY = rawTop + 13;
       }
-      const free = findFreeLabelSlot(baseCX, baseCY, axis);
+      const free = findFreeLabelSlot(baseCX, baseCY, axis, vw, vh);
       const dy = free.cy - baseCY;
-      slotCX = free.cx; slotCY = free.cy;
+      // Clamp accounting for the transform's Y shift so label always stays in viewport
+      const tfmOffY = tfm === 'translate(-50%, -100%)' ? -LABEL_H
+                    : tfm === 'translate(-50%, 4px)'   ? 4 : 0;
+      const finalTop = Math.max(4 - tfmOffY, Math.min(vh - LABEL_H - 4 - tfmOffY, rawTop + dy));
+      // Register at actual rendered center (post-clamp) so subsequent labels detect real position
+      slotCX = lx;
+      slotCY = finalTop + tfmOffY + LABEL_H / 2;
       div.style.left      = `${lx}px`;
-      div.style.top       = `${rawTop + dy}px`;
+      div.style.top       = `${finalTop}px`;
       div.style.transform = tfm;
     } else {
       const ly     = Math.max(4, Math.min(vh - 20, (y1 + y2) / 2));
@@ -2352,10 +2364,16 @@
         tfm = 'translate(4px, -50%)';
         baseCX = rawLeft + 30; baseCY = ly;
       }
-      const free = findFreeLabelSlot(baseCX, baseCY, axis);
+      const free = findFreeLabelSlot(baseCX, baseCY, axis, vw, vh);
       const dx = free.cx - baseCX;
-      slotCX = free.cx; slotCY = free.cy;
-      div.style.left      = `${rawLeft + dx}px`;
+      // Clamp accounting for the transform's X shift so label always stays in viewport
+      const tfmOffX = tfm === 'translate(-100%, -50%)' ? -LABEL_W
+                    : tfm === 'translate(4px, -50%)'   ? 4 : 0;
+      const finalLeft = Math.max(4 - tfmOffX, Math.min(vw - LABEL_W - 4 - tfmOffX, rawLeft + dx));
+      // Register at actual rendered center (post-clamp) so subsequent labels detect real position
+      slotCX = finalLeft + tfmOffX + LABEL_W / 2;
+      slotCY = ly;
+      div.style.left      = `${finalLeft}px`;
       div.style.top       = `${ly}px`;
       div.style.transform = tfm;
     }
