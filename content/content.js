@@ -1455,8 +1455,15 @@
       if (fitsInZone && !(smallEl && inBorderBox(dx, dy))) {
         const cx = Math.max(CHIP_PAD, Math.min(VW - CHIP_PAD, dx));
         const cy = Math.max(CHIP_PAD, Math.min(VH - CHIP_PAD, dy));
-        drawMetricChip(cx, cy, fmtU(val), bg, fg);
-        registerLabelSlot(cx, cy);
+        const conflict = labelSlots.some(s =>
+          Math.abs(cx - s.cx) < 48 && Math.abs(cy - s.cy) < 18
+        );
+        if (conflict) {
+          ovfItems.push({ text: `${key} ${fmtU(val)}`, bg, fg });
+        } else {
+          drawMetricChip(cx, cy, fmtU(val), bg, fg);
+          registerLabelSlot(cx, cy);
+        }
       } else {
         ovfItems.push({ text: `${key} ${fmtU(val)}`, bg, fg });
       }
@@ -2215,7 +2222,7 @@
         if (xB > xA + 0.5)    segs.push({ x1: xA,      y1: cR.top, x2: xB,     y2: cR.bottom, kind: 'gap'    });
         if (ml > 0.5)          segs.push({ x1: xB,      y1: cR.top, x2: b.left, y2: cR.bottom, kind: 'margin' });
       }
-      const labelKind = hasMargin ? 'margin' : 'gap';
+      const labelKind = (hasMargin && hasGap) ? 'mixed' : hasMargin ? 'margin' : 'gap';
       labels.push({ x1: a.right, y1: cR.top, x2: b.left, y2: cR.bottom, size: totalSpace, axis: 'h', kind: labelKind });
       return key;
     };
@@ -2241,7 +2248,7 @@
         if (yB > yA + 0.5)  segs.push({ x1: cR.left, y1: yA, x2: cR.right, y2: yB, kind: 'gap'    });
         if (maxMt > 0.5)    segs.push({ x1: cR.left, y1: yB, x2: cR.right, y2, kind: 'margin' });
       }
-      const labelKind = hasMargin ? 'margin' : 'gap';
+      const labelKind = (hasMargin && hasGap) ? 'mixed' : hasMargin ? 'margin' : 'gap';
       labels.push({ x1: cR.left, y1, x2: cR.right, y2, size: totalSpace, axis: 'v', kind: labelKind });
     };
 
@@ -2330,7 +2337,7 @@
             if (yB > yA + 0.5)  segs.push({ x1: cR.left, y1: yA,      x2: cR.right, y2: yB,    kind: 'gap'    });
             if (mt > 0.5)       segs.push({ x1: cR.left, y1: yB,       x2: cR.right, y2: b.top, kind: 'margin' });
           }
-          const labelKind = hasMargin ? 'margin' : 'gap';
+          const labelKind = (hasMargin && hasGap) ? 'mixed' : hasMargin ? 'margin' : 'gap';
           labels.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: b.top, size: gap, axis: 'v', kind: labelKind });
         });
       });
@@ -2383,10 +2390,12 @@
       const GAP_FG = _p('--mt-label-gap-h-fg');
       const MGN_BG = _p('--mt-label-gap-margin-bg');
       const MGN_FG = _p('--mt-label-gap-margin-fg');
+      const MIX_BG = _p('--mt-label-gap-mixed-bg');
+      const MIX_FG = _p('--mt-label-gap-mixed-fg');
       const ovfItems = labels.map(({ size, axis, kind }) => ({
         text: `${axis === 'h' ? '↔' : '↕'} ${fmtU(size)}`,
-        bg: kind === 'margin' ? MGN_BG : GAP_BG,
-        fg: kind === 'margin' ? MGN_FG : GAP_FG,
+        bg: kind === 'margin' ? MGN_BG : kind === 'mixed' ? MIX_BG : GAP_BG,
+        fg: kind === 'margin' ? MGN_FG : kind === 'mixed' ? MIX_FG : GAP_FG,
       }));
       drawBmCallout(ovfItems, { l: cR.left, t: cR.top, r: cR.right, b: cR.bottom });
     } else {
@@ -2399,7 +2408,8 @@
 
   function addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, kind = 'gap') {
     const div = document.createElement('div');
-    const kindCls = kind === 'margin' ? ' mt-gap-label-margin' : '';
+    const kindCls = kind === 'margin' ? ' mt-gap-label-margin'
+                  : kind === 'mixed'  ? ' mt-gap-label-mixed' : '';
     div.className = (axis === 'h' ? 'mt-gap-label mt-gap-label-h' : 'mt-gap-label mt-gap-label-v') + kindCls;
     div.textContent = fmtU(size);
 
