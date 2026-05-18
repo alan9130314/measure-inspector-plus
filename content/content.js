@@ -1364,8 +1364,11 @@
   }
 
   // ── Box Model Canvas Overlay (DevTools style) ─────────────────────────────
-  function drawBoxModelOverlay(el) {
+  /** @param {'fills'|'labels'|'all'} [phase] fills first; labels last so chips stay on top */
+  function drawBoxModelOverlay(el, phase = 'all') {
     if (!el) return;
+    const drawFills  = phase === 'fills'  || phase === 'all';
+    const drawLabels = phase === 'labels' || phase === 'all';
     const cs = window.getComputedStyle(el);
     const r  = el.getBoundingClientRect();
 
@@ -1387,6 +1390,8 @@
     const borderBox  = { l: r.left,       t: r.top,       r: r.right,       b: r.bottom     };
     const paddingBox = { l: r.left+bl,    t: r.top+bt,    r: r.right-br,    b: r.bottom-bb  };
     const contentBox = { l: r.left+bl+pl, t: r.top+bt+pt, r: r.right-br-pr, b: r.bottom-bb-pb };
+    const cw = contentBox.r - contentBox.l;
+    const ch = contentBox.b - contentBox.t;
 
     const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
     const C_MARGIN  = _p('--mt-ov-bm-margin-fill');
@@ -1402,6 +1407,7 @@
 
     CTX.save();
 
+    if (drawFills) {
     // Draw rings using evenodd fill rule
     const fillRing = (outer, inner, color) => {
       const ow = outer.r - outer.l, oh = outer.b - outer.t;
@@ -1419,10 +1425,15 @@
     fillRing(paddingBox, contentBox, C_PADDING);
 
     // Content fill
-    const cw = contentBox.r - contentBox.l, ch = contentBox.b - contentBox.t;
     if (cw > 0 && ch > 0) {
       CTX.fillStyle = C_CONTENT;
       CTX.fillRect(contentBox.l, contentBox.t, cw, ch);
+    }
+    }
+
+    if (!drawLabels) {
+      CTX.restore();
+      return;
     }
 
     // ── Labels: try in-zone; overflow → floating callout ─────────────────
@@ -1576,16 +1587,20 @@
       if (S.selected.length > 0) {
         S.selected.forEach(el => drawElementExtensions(el));
         drawGuideElementDots(S.selected);
+        S.selected.forEach(el => drawBoxModelOverlay(el, 'fills'));
+        S.selected.forEach(el => drawGridLines(el));
         S.selected.forEach(el => drawLayoutGaps(el));
+        labelSlots.length = 0; // gap DOM slots must not block box-model canvas chips
+        S.selected.forEach(el => drawBoxModelOverlay(el, 'labels'));
       }
-      S.selected.forEach(el => drawGridLines(el));
-      S.selected.forEach(el => drawBoxModelOverlay(el));
       drawInterSelectedDistances();
       drawDistances();
       if (S.hovered && S.selected.length === 0 && pointerInViewport()) {
-        drawLayoutGaps(S.hovered);
+        drawBoxModelOverlay(S.hovered, 'fills');
         drawGridLines(S.hovered);
-        drawBoxModelOverlay(S.hovered);
+        drawLayoutGaps(S.hovered);
+        labelSlots.length = 0;
+        drawBoxModelOverlay(S.hovered, 'labels');
         drawNeighborDistances(S.hovered);
       }
     }
@@ -2155,6 +2170,101 @@
     return cols;
   }
 
+  /** Merge groupByRow splits caused by sub-pixel Y drift on one flex line */
+  function mergeSpuriousFlexRows(rows, rowBounds) {
+    if (rows.length <= 1) return { rows, rowBounds };
+    const mRows = [[...rows[0]]];
+    const mBounds = [{ y1: rowBounds[0].y1, y2: rowBounds[0].y2 }];
+    for (let i = 1; i < rows.length; i++) {
+      const prev = mBounds[mBounds.length - 1];
+      if (rowBounds[i].y1 - prev.y2 < 4) {
+        mRows[mRows.length - 1].push(...rows[i]);
+        mBounds[mBounds.length - 1] = {
+          y1: Math.min(prev.y1, rowBounds[i].y1),
+          y2: Math.max(prev.y2, rowBounds[i].y2),
+        };
+      } else {
+        mRows.push([...rows[i]]);
+        mBounds.push({ y1: rowBounds[i].y1, y2: rowBounds[i].y2 });
+      }
+    }
+    return { rows: mRows, rowBounds: mBounds };
+  }
+
+  /** Column-gap cross-axis (vertical extent of ↔ gaps) per visual row */
+  function rowCrossExtent(rowBounds, i, n, cx, isGrid) {
+    const rb = rowBounds[i];
+    if (n === 1) return { y1: cx.top, y2: cx.bottom };
+    if (!isGrid) {
+      return {
+        y1: i === 0 ? cx.top : rb.y1,
+        y2: i === n - 1 ? cx.bottom : rb.y2,
+      };
+    }
+    return {
+      y1: i === 0 ? cx.top : (rowBounds[i - 1].y2 + rb.y1) / 2,
+      y2: i === n - 1 ? cx.bottom : (rb.y2 + rowBounds[i + 1].y1) / 2,
+    };
+  }
+
+  /** Parse `grid-template-rows/columns` when tracks are fixed px lengths */
+  function parseGridFixedTrackSizes(trackList) {
+    if (!trackList || trackList === 'none') return null;
+    const sizes = [];
+    for (const p of trackList.trim().split(/\s+/)) {
+      if (!p || p === '/') return null;
+      if (/auto|fr|minmax|fit-content|repeat|masonry|max-content|min-content/i.test(p)) return null;
+      const m = /^([\d.]+)px$/.exec(p);
+      if (m) { sizes.push(parseFloat(m[1])); continue; }
+      if (/[%]/.test(p)) return null;
+      const n = parseFloat(p);
+      if (Number.isFinite(n)) sizes.push(n);
+      else return null;
+    }
+    return sizes.length ? sizes : null;
+  }
+
+  /** Build row or column track boxes inside content box (gap between tracks) */
+  function buildGridAxisTracks(sizes, gap, start, vertical) {
+    const tracks = [];
+    let pos = start;
+    for (let i = 0; i < sizes.length; i++) {
+      const end = pos + sizes[i];
+      tracks.push(vertical ? { y1: pos, y2: end } : { x1: pos, x2: end });
+      if (i < sizes.length - 1) pos = end + gap;
+      else pos = end;
+    }
+    return tracks;
+  }
+
+  function pickGridTrackForRow(rb, tracks) {
+    let best = 0;
+    let bestOverlap = -1;
+    tracks.forEach((t, i) => {
+      const overlap = Math.min(rb.y2, t.y2) - Math.max(rb.y1, t.y1);
+      if (overlap > bestOverlap) { bestOverlap = overlap; best = i; }
+    });
+    return tracks[best];
+  }
+
+  /** Row-gap (↕) bounds; grid tracks can be taller than item boxes */
+  function rowGapYBounds(rowBounds, i, n, isGrid, rowGap) {
+    let y1 = rowBounds[i].y2;
+    let y2 = rowBounds[i + 1].y1;
+    if (!isGrid || n < 2 || rowGap < 0.5) return { y1, y2 };
+    const span = y2 - y1;
+    if (span > rowGap + 1.5) {
+      const extra = span - rowGap;
+      y1 += extra / 2;
+      y2 -= extra / 2;
+    } else if (span < rowGap - 0.5) {
+      const mid = (y1 + y2) / 2;
+      y1 = mid - rowGap / 2;
+      y2 = mid + rowGap / 2;
+    }
+    return { y1, y2 };
+  }
+
   function drawLayoutGaps(container) {
     const cs      = window.getComputedStyle(container);
     const display = cs.display;
@@ -2196,185 +2306,206 @@
     const colGap    = parseFloat(cs.columnGap) || 0;
     const rowGap    = parseFloat(cs.rowGap)    || 0;
 
-    // segs: individual colored regions { x1,y1,x2,y2, kind:'gap'|'margin' }
-    // labels: one per logical gap { x1,y1,x2,y2, size, axis, kind }
+    // Content box: gap fills align with box-model content area (inside padding).
+    const cx = gridContentBoxFromRect(cR, cs);
+    const clipSeg = ({ x1, y1, x2, y2 }) => ({
+      x1: Math.max(cx.left, x1),
+      y1: Math.max(cx.top, y1),
+      x2: Math.min(cx.right, x2),
+      y2: Math.min(cx.bottom, y2),
+    });
+
+    // segs: individual colored regions { x1,y1,x2,y2 }
+    // labels: one per logical gap { x1,y1,x2,y2, size, axis, auto }
     const segs   = [];
     const labels  = [];
 
-    // Helper: push h-gap segments between two adjacent items
-    const pushHSegs = (a, b) => {
-      const totalSpace = b.left - a.right;
-      if (totalSpace < 0.5) return;
-      const key = `${Math.round(a.right)},${Math.round(b.left)}`;
-      const aEl = rectToEl.get(a), bEl = rectToEl.get(b);
-      const mr  = aEl ? (parseFloat(window.getComputedStyle(aEl).marginRight) || 0) : 0;
-      const ml  = bEl ? (parseFloat(window.getComputedStyle(bEl).marginLeft)  || 0) : 0;
-      const hasMargin = mr > 0.5 || ml > 0.5;
-      const hasGap    = colGap > 0.5;
+    const elMargin = (el, side) =>
+      el ? (parseFloat(getComputedStyle(el)[side]) || 0) : 0;
 
-      if (!hasMargin || !hasGap) {
-        const kind = hasGap ? 'gap' : 'margin';
-        segs.push({ x1: a.right, y1: cR.top, x2: b.left, y2: cR.bottom, kind });
-      } else {
-        const xA = Math.min(a.right + mr, b.left);
-        const xB = Math.max(b.left  - ml, a.right);
-        if (mr > 0.5)          segs.push({ x1: a.right, y1: cR.top, x2: xA,     y2: cR.bottom, kind: 'margin' });
-        if (xB > xA + 0.5)    segs.push({ x1: xA,      y1: cR.top, x2: xB,     y2: cR.bottom, kind: 'gap'    });
-        if (ml > 0.5)          segs.push({ x1: xB,      y1: cR.top, x2: b.left, y2: cR.bottom, kind: 'margin' });
-      }
-      const labelKind = (hasMargin && hasGap) ? 'mixed' : hasMargin ? 'margin' : 'gap';
-      labels.push({ x1: a.right, y1: cR.top, x2: b.left, y2: cR.bottom, size: totalSpace, axis: 'h', kind: labelKind });
+    /** @param {{ expected?: number|null, free?: boolean }} [opts] free → DevTools-style ~ distributed space */
+    const pushGapRect = (x1, y1, x2, y2, axis, opts = {}) => {
+      const w = x2 - x1;
+      const h = y2 - y1;
+      if (w < 0.5 || h < 0.5) return false;
+      const size = axis === 'h' ? w : h;
+      const { expected = null, free = false } = opts;
+      const auto = free || (expected != null && expected > 0 && Math.abs(size - expected) > 1.0);
+      const seg = clipSeg({ x1, y1, x2, y2 });
+      if (seg.x2 - seg.x1 < 0.5 || seg.y2 - seg.y1 < 0.5) return false;
+      segs.push(seg);
+      labels.push({ ...seg, size, axis, auto });
+      return true;
+    };
+
+    // Strip item margin extents — draw only the pure CSS gap region between margin edges.
+    const pushHSegs = (a, b, rowY1, rowY2) => {
+      const aEl = rectToEl.get(a);
+      const bEl = rectToEl.get(b);
+      const mr  = elMargin(aEl, 'marginRight');
+      const ml  = elMargin(bEl, 'marginLeft');
+      const x1  = a.right + mr;
+      const x2  = b.left  - ml;
+      if (x2 - x1 < 0.5) return;
+      const key = `${Math.round(a.right)},${Math.round(b.left)}`;
+      if (!pushGapRect(x1, rowY1, x2, rowY2, 'h', { expected: colGap })) return;
       return key;
     };
 
-    // Helper: push v-gap segments between two rows
-    const pushVSegs = (rowTop, rowBot, y1, y2) => {
-      const totalSpace = y2 - y1;
-      if (totalSpace < 0.5) return;
-      const topElems = rowTop.map(r => rectToEl.get(r)).filter(Boolean);
-      const botElems = rowBot.map(r => rectToEl.get(r)).filter(Boolean);
-      const maxMb = topElems.length ? Math.max(...topElems.map(el => parseFloat(window.getComputedStyle(el).marginBottom) || 0)) : 0;
-      const maxMt = botElems.length ? Math.max(...botElems.map(el => parseFloat(window.getComputedStyle(el).marginTop)    || 0)) : 0;
-      const hasMargin = maxMb > 0.5 || maxMt > 0.5;
-      const hasGap    = rowGap > 0.5;
-
-      if (!hasMargin || !hasGap) {
-        const kind = hasGap ? 'gap' : 'margin';
-        segs.push({ x1: cR.left, y1, x2: cR.right, y2, kind });
-      } else {
-        const yA = Math.min(y1 + maxMb, y2);
-        const yB = Math.max(y2 - maxMt, y1);
-        if (maxMb > 0.5)    segs.push({ x1: cR.left, y1, x2: cR.right, y2: yA, kind: 'margin' });
-        if (yB > yA + 0.5)  segs.push({ x1: cR.left, y1: yA, x2: cR.right, y2: yB, kind: 'gap'    });
-        if (maxMt > 0.5)    segs.push({ x1: cR.left, y1: yB, x2: cR.right, y2, kind: 'margin' });
-      }
-      const labelKind = (hasMargin && hasGap) ? 'mixed' : hasMargin ? 'margin' : 'gap';
-      labels.push({ x1: cR.left, y1, x2: cR.right, y2, size: totalSpace, axis: 'v', kind: labelKind });
+    const pushVSegs = (y1, y2, opts = {}) => {
+      if (y2 - y1 < 0.5) return;
+      pushGapRect(cx.left, y1, cx.right, y2, 'v', { expected: rowGap, ...opts });
     };
 
+    /** Flex row-direction: justify-content free space at main-start / main-end of each line */
+    const drawFlexMainFreeRow = (rowItems, rowY1, rowY2) => {
+      if (!rowItems.length) return;
+      const sorted = rowItems.slice().sort((a, b) => a.left - b.left);
+      const first = sorted[0];
+      const last  = sorted[sorted.length - 1];
+      const firstEl = rectToEl.get(first);
+      const lastEl  = rectToEl.get(last);
+      pushGapRect(cx.left, rowY1, first.left - elMargin(firstEl, 'marginLeft'), rowY2, 'h', { free: true });
+      pushGapRect(last.right + elMargin(lastEl, 'marginRight'), rowY1, cx.right, rowY2, 'h', { free: true });
+    };
+
+    /** Flex row-direction: align-content / align-items cross-axis free space (top & bottom of content) */
+    const drawFlexCrossFreeRows = bounds => {
+      if (!bounds.length) return;
+      pushGapRect(cx.left, cx.top, cx.right, bounds[0].y1, 'v', { free: true });
+      pushGapRect(cx.left, bounds[bounds.length - 1].y2, cx.right, cx.bottom, 'v', { free: true });
+    };
+
+    /** Flex column-direction: main-axis (vertical) free space per column */
+    const drawFlexMainFreeCol = (colItems, colX1, colX2) => {
+      if (!colItems.length) return;
+      const sorted = colItems.slice().sort((a, b) => a.top - b.top);
+      const first = sorted[0];
+      const last  = sorted[sorted.length - 1];
+      const firstEl = rectToEl.get(first);
+      const lastEl  = rectToEl.get(last);
+      pushGapRect(colX1, cx.top, colX2, first.top - elMargin(firstEl, 'marginTop'), 'v', { free: true });
+      pushGapRect(colX1, last.bottom + elMargin(lastEl, 'marginBottom'), colX2, cx.bottom, 'v', { free: true });
+    };
+
+    /** Flex column-direction: cross-axis (horizontal) free space per column */
+    const drawFlexCrossFreeCol = (colItems, colX1, colX2) => {
+      if (!colItems.length) return;
+      const y1 = Math.min(...colItems.map(r => r.top - elMargin(rectToEl.get(r), 'marginTop')));
+      const y2 = Math.max(...colItems.map(r => r.bottom + elMargin(rectToEl.get(r), 'marginBottom')));
+      const sorted = colItems.slice().sort((a, b) => a.left - b.left);
+      const first = sorted[0];
+      const last  = sorted[sorted.length - 1];
+      const firstEl = rectToEl.get(first);
+      const lastEl  = rectToEl.get(last);
+      pushGapRect(colX1, y1, first.left - elMargin(firstEl, 'marginLeft'), y2, 'h', { free: true });
+      pushGapRect(last.right + elMargin(lastEl, 'marginRight'), y1, colX2, y2, 'h', { free: true });
+    };
+
+    // Margin-extended cross-extent of a flex row.
+    const rowCrossY = row => ({
+      y1: Math.min(...row.map(r => r.top    - elMargin(rectToEl.get(r), 'marginTop'))),
+      y2: Math.max(...row.map(r => r.bottom + elMargin(rectToEl.get(r), 'marginBottom'))),
+    });
+
     if (!isColFlex) {
-      const rows = groupByRow(rects);
+      let rows = groupByRow(rects);
+      let rowBounds = rows.map(rowCrossY);
+      if (isFlex) ({ rows, rowBounds } = mergeSpuriousFlexRows(rows, rowBounds));
+      const nRows = rows.length;
+
+      let gridRowTracks = null;
+      if (isGrid) {
+        const rowSizes = parseGridFixedTrackSizes(cs.gridTemplateRows);
+        if (rowSizes) {
+          gridRowTracks = buildGridAxisTracks(rowSizes, rowGap, cx.top, true);
+          gridRowTracks[0].y1 = cx.top;
+          gridRowTracks[gridRowTracks.length - 1].y2 = cx.bottom;
+        }
+      }
+
+      const lineY = rowBounds.map((rb, i) => {
+        if (isGrid) return { y1: cx.top, y2: cx.bottom };
+        return rowCrossExtent(rowBounds, i, nRows, cx, false);
+      });
 
       const seenH = new Set();
-      rows.forEach(row => {
+      rows.forEach((row, ri) => {
+        const { y1: rowY1, y2: rowY2 } = lineY[ri];
         row.slice().sort((a, b) => a.left - b.left).forEach((a, i, arr) => {
           if (i === arr.length - 1) return;
-          const b   = arr[i + 1];
-          const key = pushHSegs(a, b);
+          const b    = arr[i + 1];
+          const hKey = `${Math.round(a.right)},${Math.round(b.left)}`;
+          if (seenH.has(hKey)) return;
+          const key = pushHSegs(a, b, rowY1, rowY2);
           if (key) seenH.add(key);
         });
+        if (isFlex && !isGrid) drawFlexMainFreeRow(row, rowY1, rowY2);
       });
 
-      if (isGrid || (isFlex && cs.flexWrap !== 'nowrap')) {
-        for (let i = 0; i < rows.length - 1; i++) {
-          const maxBottom = Math.max(...rows[i].map(r => r.bottom));
-          const minTop    = Math.min(...rows[i + 1].map(r => r.top));
-          pushVSegs(rows[i], rows[i + 1], maxBottom, minTop);
+      if (isFlex && !isGrid) drawFlexCrossFreeRows(rowBounds);
+
+      if (isGrid && gridRowTracks && gridRowTracks.length > 1) {
+        for (let i = 0; i < gridRowTracks.length - 1; i++) {
+          pushVSegs(gridRowTracks[i].y2, gridRowTracks[i + 1].y1);
+        }
+      } else if (isGrid || (isFlex && cs.flexWrap !== 'nowrap')) {
+        for (let i = 0; i < nRows - 1; i++) {
+          const { y1, y2 } = rowGapYBounds(rowBounds, i, nRows, isGrid, rowGap);
+          pushVSegs(y1, y2);
         }
       }
 
-      // Edge margins: outermost children vs. parent (H leading/trailing per row)
-      rows.forEach(row => {
-        const sorted  = row.slice().sort((a, b) => a.left - b.left);
-        const first   = sorted[0];
-        const last    = sorted[sorted.length - 1];
-        const firstEl = rectToEl.get(first);
-        const lastEl  = rectToEl.get(last);
-        const ml = firstEl ? (parseFloat(window.getComputedStyle(firstEl).marginLeft)  || 0) : 0;
-        const mr = lastEl  ? (parseFloat(window.getComputedStyle(lastEl).marginRight)  || 0) : 0;
-        if (ml > 0.5) {
-          segs.push({ x1: first.left - ml, y1: cR.top, x2: first.left, y2: cR.bottom, kind: 'margin' });
-          labels.push({ x1: first.left - ml, y1: cR.top, x2: first.left, y2: cR.bottom, size: ml, axis: 'h', kind: 'margin' });
-        }
-        if (mr > 0.5) {
-          segs.push({ x1: last.right, y1: cR.top, x2: last.right + mr, y2: cR.bottom, kind: 'margin' });
-          labels.push({ x1: last.right, y1: cR.top, x2: last.right + mr, y2: cR.bottom, size: mr, axis: 'h', kind: 'margin' });
-        }
-      });
-      // V leading (first row margin-top) and trailing (last row margin-bottom)
-      {
-        const firstRow = rows[0];
-        const lastRow  = rows[rows.length - 1];
-        const maxMt = Math.max(0, ...firstRow.map(r => rectToEl.get(r)).filter(Boolean)
-          .map(el => parseFloat(window.getComputedStyle(el).marginTop) || 0));
-        const maxMb = Math.max(0, ...lastRow.map(r => rectToEl.get(r)).filter(Boolean)
-          .map(el => parseFloat(window.getComputedStyle(el).marginBottom) || 0));
-        const firstRowMinTop   = Math.min(...firstRow.map(r => r.top));
-        const lastRowMaxBottom = Math.max(...lastRow.map(r => r.bottom));
-        if (maxMt > 0.5) {
-          segs.push({ x1: cR.left, y1: firstRowMinTop - maxMt, x2: cR.right, y2: firstRowMinTop, kind: 'margin' });
-          labels.push({ x1: cR.left, y1: firstRowMinTop - maxMt, x2: cR.right, y2: firstRowMinTop, size: maxMt, axis: 'v', kind: 'margin' });
-        }
-        if (maxMb > 0.5) {
-          segs.push({ x1: cR.left, y1: lastRowMaxBottom, x2: cR.right, y2: lastRowMaxBottom + maxMb, kind: 'margin' });
-          labels.push({ x1: cR.left, y1: lastRowMaxBottom, x2: cR.right, y2: lastRowMaxBottom + maxMb, size: maxMb, axis: 'v', kind: 'margin' });
-        }
-      }
     } else {
+      const cols = groupByCol(rects);
+      const colCrossX = col => ({
+        x1: Math.min(...col.map(r => r.left - elMargin(rectToEl.get(r), 'marginLeft'))),
+        x2: Math.max(...col.map(r => r.right + elMargin(rectToEl.get(r), 'marginRight'))),
+      });
+      const colBounds = cols.map(colCrossX);
+      const lineX = colBounds.map((cb, i) => ({
+        x1: i === 0 ? cx.left : cb.x1,
+        x2: i === cols.length - 1 ? cx.right : cb.x2,
+      }));
+
       const seenV = new Set();
-      groupByCol(rects).forEach(col => {
+      cols.forEach((col, ci) => {
+        const { x1: colX1, x2: colX2 } = lineX[ci];
         col.slice().sort((a, b) => a.top - b.top).forEach((a, i, arr) => {
           if (i === arr.length - 1) return;
           const b   = arr[i + 1];
-          const gap = b.top - a.bottom;
-          if (gap < 0.5) return;
+          if (b.top - a.bottom < 0.5) return;
           const key = `${Math.round(a.bottom)},${Math.round(b.top)}`;
           if (seenV.has(key)) return;
           seenV.add(key);
-          const aEl = rectToEl.get(a), bEl = rectToEl.get(b);
-          const mb  = aEl ? (parseFloat(window.getComputedStyle(aEl).marginBottom) || 0) : 0;
-          const mt  = bEl ? (parseFloat(window.getComputedStyle(bEl).marginTop)    || 0) : 0;
-          const hasMargin = mb > 0.5 || mt > 0.5;
-          const hasGap    = rowGap > 0.5;
-
-          if (!hasMargin || !hasGap) {
-            const kind = hasGap ? 'gap' : 'margin';
-            segs.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: b.top, kind });
-          } else {
-            const yA = Math.min(a.bottom + mb, b.top);
-            const yB = Math.max(b.top - mt, a.bottom);
-            if (mb > 0.5)       segs.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: yA,    kind: 'margin' });
-            if (yB > yA + 0.5)  segs.push({ x1: cR.left, y1: yA,      x2: cR.right, y2: yB,    kind: 'gap'    });
-            if (mt > 0.5)       segs.push({ x1: cR.left, y1: yB,       x2: cR.right, y2: b.top, kind: 'margin' });
-          }
-          const labelKind = (hasMargin && hasGap) ? 'mixed' : hasMargin ? 'margin' : 'gap';
-          labels.push({ x1: cR.left, y1: a.bottom, x2: cR.right, y2: b.top, size: gap, axis: 'v', kind: labelKind });
+          const aEl = rectToEl.get(a);
+          const bEl = rectToEl.get(b);
+          const mb  = elMargin(aEl, 'marginBottom');
+          const mt  = elMargin(bEl, 'marginTop');
+          const y1  = a.bottom + mb;
+          const y2  = b.top    - mt;
+          if (y2 - y1 < 0.5) return;
+          pushGapRect(colX1, y1, colX2, y2, 'v', { expected: rowGap });
         });
+        if (isFlex && !isGrid) {
+          drawFlexMainFreeCol(col, colX1, colX2);
+          drawFlexCrossFreeCol(col, colX1, colX2);
+        }
       });
-
-      // V leading / trailing margins for flex-column
-      const colSorted  = rects.slice().sort((a, b) => a.top - b.top);
-      const colFirstEl = rectToEl.get(colSorted[0]);
-      const colLastEl  = rectToEl.get(colSorted[colSorted.length - 1]);
-      const colLeadMt  = colFirstEl ? (parseFloat(window.getComputedStyle(colFirstEl).marginTop)    || 0) : 0;
-      const colTrailMb = colLastEl  ? (parseFloat(window.getComputedStyle(colLastEl).marginBottom)  || 0) : 0;
-      if (colLeadMt > 0.5) {
-        const y2 = colSorted[0].top;
-        const y1 = y2 - colLeadMt;
-        segs.push({ x1: cR.left, y1, x2: cR.right, y2, kind: 'margin' });
-        labels.push({ x1: cR.left, y1, x2: cR.right, y2, size: colLeadMt, axis: 'v', kind: 'margin' });
-      }
-      if (colTrailMb > 0.5) {
-        const y1 = colSorted[colSorted.length - 1].bottom;
-        const y2 = y1 + colTrailMb;
-        segs.push({ x1: cR.left, y1, x2: cR.right, y2, kind: 'margin' });
-        labels.push({ x1: cR.left, y1, x2: cR.right, y2, size: colTrailMb, axis: 'v', kind: 'margin' });
-      }
     }
 
     if (!segs.length) return;
 
-    const hatchGap    = makeHatchPattern('rgba(155, 87, 211, 0.72)');
-    const hatchMargin = makeHatchPattern('rgba(202, 138, 4, 0.80)');
+    const hatchGap = makeHatchPattern('rgba(155, 87, 211, 0.72)');
 
     CTX.save();
     CTX.lineWidth = 1;
     CTX.setLineDash([]);
-    segs.forEach(({ x1, y1, x2, y2, kind }) => {
+    CTX.fillStyle   = hatchGap;
+    CTX.strokeStyle = 'rgba(155, 87, 211, 0.90)';
+    segs.forEach(({ x1, y1, x2, y2 }) => {
       const w = x2 - x1, h = y2 - y1;
       if (w < 0.5 || h < 0.5) return;
-      CTX.fillStyle   = kind === 'gap' ? hatchGap    : hatchMargin;
-      CTX.strokeStyle = kind === 'gap' ? 'rgba(155, 87, 211, 0.90)' : 'rgba(202, 138, 4, 0.90)';
       CTX.fillRect(x1, y1, w, h);
       CTX.strokeRect(x1, y1, w, h);
     });
@@ -2388,30 +2519,25 @@
       const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
       const GAP_BG = _p('--mt-label-gap-h-bg');
       const GAP_FG = _p('--mt-label-gap-h-fg');
-      const MGN_BG = _p('--mt-label-gap-margin-bg');
-      const MGN_FG = _p('--mt-label-gap-margin-fg');
-      const MIX_BG = _p('--mt-label-gap-mixed-bg');
-      const MIX_FG = _p('--mt-label-gap-mixed-fg');
-      const ovfItems = labels.map(({ size, axis, kind }) => ({
-        text: `${axis === 'h' ? '↔' : '↕'} ${fmtU(size)}`,
-        bg: kind === 'margin' ? MGN_BG : kind === 'mixed' ? MIX_BG : GAP_BG,
-        fg: kind === 'margin' ? MGN_FG : kind === 'mixed' ? MIX_FG : GAP_FG,
+      const ovfItems = labels.map(({ size, axis, auto }) => ({
+        text: `${axis === 'h' ? '↔' : '↕'} ${auto ? '~' : ''}${fmtU(size)}`,
+        bg: GAP_BG,
+        fg: GAP_FG,
       }));
       drawBmCallout(ovfItems, { l: cR.left, t: cR.top, r: cR.right, b: cR.bottom });
     } else {
-      labels.forEach(({ x1, y1, x2, y2, size, axis, kind }) => {
-        if (y1 > vh || y2 < 0) return; // strip entirely outside viewport — no canvas hatch, no label
-        addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, kind);
+      labels.forEach(({ x1, y1, x2, y2, size, axis, auto }) => {
+        if (y1 > vh || y2 < 0) return;
+        addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, auto);
       });
     }
   }
 
-  function addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, kind = 'gap') {
+  function addGapLabel(size, x1, y1, x2, y2, axis, vw, vh, auto = false) {
     const div = document.createElement('div');
-    const kindCls = kind === 'margin' ? ' mt-gap-label-margin'
-                  : kind === 'mixed'  ? ' mt-gap-label-mixed' : '';
-    div.className = (axis === 'h' ? 'mt-gap-label mt-gap-label-h' : 'mt-gap-label mt-gap-label-v') + kindCls;
-    div.textContent = fmtU(size);
+    div.className = (axis === 'h' ? 'mt-gap-label mt-gap-label-h' : 'mt-gap-label mt-gap-label-v')
+                  + (auto ? ' mt-gap-label-auto' : '');
+    div.textContent = (auto ? '~' : '') + fmtU(size);
 
     const LABEL_H = 14; // approximate gap label height
     const LABEL_W = 48; // approximate gap label max width
