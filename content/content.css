@@ -564,10 +564,36 @@
   cursor:pointer;
   transition:background .12s, color .12s, border-color .12s;
 }
-.cp-sp-unit-btn:hover:not(.is-active) {
+.cp-sp-unit-btn:hover:not(.is-active):not(.is-in-cycle) {
   background:var(--mt-btn-hover-bg); color:var(--mt-text-bright); border-color:var(--mt-border-hover);
 }
 .cp-sp-unit-btn.is-active {
+  background:var(--mt-active-bg); color:var(--mt-active-fg); border-color:var(--mt-active-bd);
+}
+.cp-sp-unit-btn.is-in-cycle {
+  border-color:var(--mt-cyan); color:var(--mt-cyan);
+}
+.cp-sp-unit-btn.is-in-cycle:hover {
+  background:var(--mt-btn-hover-bg);
+}
+.cp-sp-unit-btn.is-out-cycle {
+  opacity:0.35;
+}
+.cp-sp-unit-btn.is-out-cycle:hover {
+  opacity:1; border-color:var(--mt-border-hover);
+}
+.cp-sp-cycle-edit-btn {
+  display:flex; align-items:center; justify-content:center;
+  height:26px; padding:0 8px; border-radius:6px; flex-shrink:0;
+  border:1px solid var(--mt-border-ui);
+  background:var(--mt-surface-2); color:var(--mt-text-dim);
+  cursor:pointer;
+  transition:background .12s, color .12s, border-color .12s;
+}
+.cp-sp-cycle-edit-btn:hover {
+  background:var(--mt-btn-hover-bg); color:var(--mt-text-bright); border-color:var(--mt-border-hover);
+}
+.cp-sp-cycle-edit-btn.is-active {
   background:var(--mt-active-bg); color:var(--mt-active-fg); border-color:var(--mt-active-bd);
 }
 .cp-sp-rem {

@@ -12,7 +12,9 @@
   const REM_ROOT_KEY     = 'remRootPx';
   const THEME_KEY        = 'uiTheme';
   const PANEL_SNAP_KEY   = 'panelSnap';
-  const SCREEN_UNITS     = ['px', 'rem', 'vw', 'vh'];
+  const CYCLE_UNITS_KEY   = 'cycleUnits';
+  const ALL_UNITS         = ['px', 'rem', 'vw', 'vh', 'pt', 'in', 'cm', 'mm'];
+  const SCREEN_UNITS      = ['px', 'rem', 'vw', 'vh']; // default cycle
   const INS_GUTTER     = 5;
   const INS_BM_MIN     = 200;
   const INS_PROPS_MIN  = 160;
@@ -45,6 +47,8 @@
     inspectorSplit: null,
     inspectorBmPx:  null,
     remRootPx:      16,
+    cycleUnits:     [...SCREEN_UNITS],
+    cycleEditMode:  false,
     theme:          'light',
     panelSnap:      true,
     settingsOpen:   false,
@@ -65,6 +69,7 @@
     moon:      `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.2 2.2a5 5 0 1 0 2.6 8.8 4.4 4.4 0 1 1-2.6-8.8z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     panelHide: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 11h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M5 5L7 7L9 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     settings:  `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M6.09 2.9L6.06 1.68L7.94 1.68L7.91 2.9L9.26 3.46L10.1 2.58L11.42 3.9L10.54 4.74L11.1 6.09L12.32 6.06L12.32 7.94L11.1 7.91L10.54 9.26L11.42 10.1L10.1 11.42L9.26 10.54L7.91 11.1L7.94 12.32L6.06 12.32L6.09 11.1L4.74 10.54L3.9 11.42L2.58 10.1L3.46 9.26L2.9 7.91L1.68 7.94L1.68 6.06L2.9 6.09L3.46 4.74L2.58 3.9L3.9 2.58L4.74 3.46Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"/></svg>`,
+    cycleEdit: `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 9.5L8 4L10 6L4.5 11.5H2.5V9.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M7 5.5L8.5 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M10 2.5L11.5 4L10.5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   };
 
   // ── DOM refs ─────────────────────────────────────────────────────────────
@@ -383,11 +388,28 @@
       el('span', 'cp-sp-section-label', unitsSettingRow).textContent = 'UNITS';
       const unitsCtrl = el('div', 'cp-sp-units', unitsSettingRow);
       const mkUnitBtn = unit => {
-        const b = el('button', 'cp-sp-unit-btn' + (S.unit === unit ? ' is-active' : ''), unitsCtrl);
+        let cls = 'cp-sp-unit-btn';
+        if (S.cycleEditMode) {
+          cls += S.cycleUnits.includes(unit) ? ' is-in-cycle' : ' is-out-cycle';
+        } else {
+          cls += S.unit === unit ? ' is-active' : '';
+        }
+        const b = el('button', cls, unitsCtrl);
         b.textContent = unit.toUpperCase();
+        b.title = unit;
         b.addEventListener('click', e => {
           e.stopPropagation();
-          if (S.unit !== unit) {
+          if (S.cycleEditMode) {
+            const cur = S.cycleUnits;
+            if (cur.includes(unit)) {
+              if (cur.length <= 1) return;
+              S.cycleUnits = cur.filter(u => u !== unit);
+            } else {
+              S.cycleUnits = ALL_UNITS.filter(u => [...cur, unit].includes(u));
+            }
+            try { chrome.storage.local.set({ [CYCLE_UNITS_KEY]: S.cycleUnits }); } catch (_) {}
+            updatePanel();
+          } else if (S.unit !== unit) {
             S.unit = unit;
             updatePanel();
             updateStatusBar();
@@ -397,9 +419,19 @@
           }
         });
       };
-      ['px', 'rem', 'vw', 'vh', 'pt', 'in', 'cm', 'mm'].forEach(mkUnitBtn);
+      ALL_UNITS.forEach(mkUnitBtn);
 
-      if (S.unit === 'rem') {
+      // edit-cycle toggle button — appended last so it sits at the far right
+      const cycleEditBtn = el('button', 'cp-sp-cycle-edit-btn' + (S.cycleEditMode ? ' is-active' : ''), unitsCtrl);
+      cycleEditBtn.innerHTML = IC.cycleEdit;
+      cycleEditBtn.title = S.cycleEditMode ? 'Done — exit cycle edit' : 'Edit U-key cycle';
+      cycleEditBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        S.cycleEditMode = !S.cycleEditMode;
+        updatePanel();
+      });
+
+      if (!S.cycleEditMode && S.unit === 'rem') {
         const remWrap = el('div', 'cp-sp-rem cp-sp-rem-block', unitsCtrl);
         el('span', 'cp-rem-root-label', remWrap).textContent = '1rem=';
         const remInp = el('input', 'cp-rem-root-inp', remWrap, 'id=cp-rem-root-inp');
@@ -602,8 +634,9 @@
   }
 
   function toggleUnit() {
-    const idx = SCREEN_UNITS.indexOf(S.unit);
-    S.unit = SCREEN_UNITS[(idx < 0 ? 0 : idx + 1) % SCREEN_UNITS.length];
+    const cycle = S.cycleUnits.length > 0 ? S.cycleUnits : ['px'];
+    const idx = cycle.indexOf(S.unit);
+    S.unit = cycle[(idx < 0 ? 0 : idx + 1) % cycle.length];
     updatePanel();
     updateStatusBar();
     const inspected = S.selected.length === 1 ? S.selected[0] : S.hovered;
@@ -613,12 +646,16 @@
 
   // ── Enable / Disable ──────────────────────────────────────────────────────
   function enable(onReady) {
-    chrome.storage.local.get([STORAGE_KEY, REM_ROOT_KEY, THEME_KEY, PANEL_SNAP_KEY], result => {
+    chrome.storage.local.get([STORAGE_KEY, REM_ROOT_KEY, THEME_KEY, PANEL_SNAP_KEY, CYCLE_UNITS_KEY], result => {
       const v = result[STORAGE_KEY];
       S.inspectorBmPx = (Number.isFinite(v) && v >= INS_BM_MIN) ? v : 340;
       S.remRootPx = parseRemRootFromStorage(result[REM_ROOT_KEY]);
       S.theme = result[THEME_KEY] === 'dark' ? 'dark' : 'light';
       S.panelSnap = result[PANEL_SNAP_KEY] !== false;
+      if (Array.isArray(result[CYCLE_UNITS_KEY])) {
+        const valid = result[CYCLE_UNITS_KEY].filter(u => ALL_UNITS.includes(u));
+        if (valid.length > 0) S.cycleUnits = valid;
+      }
       _enable();
       if (typeof onReady === 'function') onReady();
     });
