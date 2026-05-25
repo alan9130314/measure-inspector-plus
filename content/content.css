@@ -30,14 +30,6 @@
 
   --mt-label-orange-bg:  rgba(179, 38, 30, 0.92);
   --mt-label-orange-fg:  #fdecea;
-  --mt-label-gap-h-bg:      rgba(88, 28, 135, 0.92);
-  --mt-label-gap-h-fg:      #f3e8ff;
-  --mt-label-gap-v-bg:      rgba(88, 28, 135, 0.92);
-  --mt-label-gap-v-fg:      #f3e8ff;
-  --mt-label-gap-margin-bg: rgba(120, 60, 0, 0.92);
-  --mt-label-gap-margin-fg: #fef3c7;
-  --mt-label-gap-mixed-bg:  rgba(7, 89, 133, 0.92);
-  --mt-label-gap-mixed-fg:  #e0f2fe;
   /* Guides: opaque chips read on light or dark page content behind the overlay */
   --mt-label-guide-bg:   rgba(18, 52, 110, 0.96);
   --mt-label-guide-fg:   #ffffff;
@@ -140,14 +132,6 @@
 
   --mt-label-orange-bg:  rgba(185, 28, 28, 0.92);
   --mt-label-orange-fg:  #fef2f2;
-  --mt-label-gap-h-bg:      rgba(88, 28, 135, 0.92);
-  --mt-label-gap-h-fg:      #f3e8ff;
-  --mt-label-gap-v-bg:      rgba(88, 28, 135, 0.92);
-  --mt-label-gap-v-fg:      #f3e8ff;
-  --mt-label-gap-margin-bg: rgba(120, 60, 0, 0.92);
-  --mt-label-gap-margin-fg: #fef3c7;
-  --mt-label-gap-mixed-bg:  rgba(7, 89, 133, 0.92);
-  --mt-label-gap-mixed-fg:  #e0f2fe;
 
   --mt-label-guide-bg:   rgba(15, 23, 42, 0.94);
   --mt-label-guide-fg:   #f8fafc;
@@ -257,19 +241,7 @@
 .mt-size-badge-hover  { background:var(--mt-hl-badge-bg); color:var(--mt-hl-badge-fg); }
 .mt-size-badge-select { background:var(--mt-hl-badge-bg); color:var(--mt-hl-badge-fg); }
 
-/* Distance / gap px labels: distances are drawn on canvas (drawMetricChip); gap labels stay DOM (.mt-gap-label). */
-
-/* ── Gap labels ─────────────────────────────────────────────── */
-.mt-gap-label {
-  position:fixed; z-index:2147483631;
-  font-size:10px; font-weight:500; font-family:var(--mt-mono);
-  padding:1px 5px; border-radius:3px;
-  pointer-events:none; white-space:nowrap;
-}
-.mt-gap-label-h { background:var(--mt-label-gap-h-bg); color:var(--mt-label-gap-h-fg); border:1px solid rgba(155, 87, 211, 0.55); }
-.mt-gap-label-v { background:var(--mt-label-gap-v-bg); color:var(--mt-label-gap-v-fg); border:1px solid rgba(155, 87, 211, 0.55); }
-.mt-gap-label-margin { background:var(--mt-label-gap-margin-bg) !important; color:var(--mt-label-gap-margin-fg) !important; border-color:rgba(202, 138, 4, 0.55) !important; }
-.mt-gap-label-mixed  { background:var(--mt-label-gap-mixed-bg)  !important; color:var(--mt-label-gap-mixed-fg)  !important; border-color:rgba(14, 165, 233, 0.55) !important; }
+/* Distance labels are drawn on canvas via drawMetricChip. */
 
 /* ── Guide lines ────────────────────────────────────────────── */
 .mt-guide { position:fixed; z-index:2147483625; pointer-events:auto; cursor:pointer; }
