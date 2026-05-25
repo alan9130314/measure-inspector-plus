@@ -14,7 +14,7 @@ MeasureTool is a Chrome extension that overlays measurement data directly on any
 - **Guide Lines** — place draggable horizontal and vertical guides with snap-to-element alignment
 - **Multi-select & Marquee** — select multiple elements with Shift+Click or drag to measure distances between them
 - **Box Model Overlay** — color-coded margin / border / padding / content visualization on canvas
-- **Layout Gap Visualization** — renders flex/grid gaps and inter-element margins as colored regions with labels
+- **Flex / Grid Gap Overlay** — DevTools-style 45° diagonal hatched stripes mark only the true gap and free space inside a flex / grid container; each child's margin box is excluded, and within a flex line / grid row track the cross-axis leftover (e.g. below shorter items with `align-items: flex-start`) is also excluded. Hole edges are outlined with a dashed boundary
 - **CSS Grid Lines** — overlays column and row boundaries for grid containers
 - **DOM Navigation** — traverse parent/child elements with arrow keys
 - **8 Measurement Units** — px, rem, vw, vh, pt, in, cm, mm; press `U` to cycle through a configurable subset (default: px → rem → vw → vh)
@@ -69,7 +69,7 @@ Inspect individual elements and measure distances between them.
 | Overlay | Description |
 |---------|-------------|
 | Box model rings | Color-coded margin / border / padding / content areas with dimension labels |
-| Layout gap regions | Colored bands between child elements showing gap and margin sizes |
+| Flex / Grid gap hatch | 45° diagonal purple stripes filling the container's content box minus each child's margin box, line-expanded so cross-axis leftover within the same flex line / grid row track is treated as item-occupied. A dashed violet boundary outlines every hole. Triggered for any selected (or hovered, when nothing is selected) element whose `display` resolves to `flex`, `inline-flex`, `grid`, or `inline-grid` |
 | CSS Grid lines | Dashed lines tracing row and column boundaries |
 | Element extension lines | Red dashed lines extending each selected element's edges to the viewport boundary |
 | Neighbor distance labels | Distance from the selected element to its nearest siblings and parent edges |
@@ -202,8 +202,8 @@ The cycle configuration is saved and persists across sessions. The rem root valu
 | Border area | Yellow | Selected element |
 | Padding area | Green | Selected element |
 | Content area | Blue | Selected element |
-| Layout gap (flex / grid / other) | Purple | Selected element with child elements |
-| Inter-element margin | Amber | Selected element with child elements |
+| Flex / Grid gap hatch | Purple 45° diagonal stripes | Selected (or hovered) flex / grid container — child margin and within-line cross-axis leftover are excluded |
+| Flex / Grid gap boundary | Purple dashed outline | Outlines every line-expanded hole produced by the hatch overlay |
 | CSS Grid column / row lines | Purple dashed | Selected grid container |
 | Element extension lines | Red dashed | Selected element |
 | Neighbor distance labels | White chip | Selected element |
@@ -279,7 +279,7 @@ MeasureTool 是一款 Chrome 擴充功能，可在任何網頁上直接疊加顯
 - **參考線** — 拖動式水平與垂直參考線，支援自動吸附至元素邊緣
 - **多選與矩形框選** — 使用 Shift+Click 或拖動框選多個元素，量測彼此之間的距離
 - **盒模型疊加層** — 以彩色區塊在 Canvas 上視覺化 margin / border / padding / content
-- **佈局間隙視覺化** — 以彩色色塊標示 flex/grid 間隙與元素間距，並顯示數值標籤
+- **Flex / Grid 間隙疊加層** — DevTools 風格的 45° 紫色斜紋只標示 flex / grid 容器內真正的 gap 與剩餘自由空間。子元素的 margin box 會被排除；同一 flex line / grid row track 內較矮 / 較窄的子元素 cross-axis 剩餘空間（例如 `align-items: flex-start` 時下方留白）也會一併排除。每個 hole 邊界再加上紫色虛線強調
 - **CSS Grid 線條** — 疊加顯示 Grid 容器的欄與列邊界
 - **DOM 導航** — 使用方向鍵在父/子元素之間切換
 - **8 種測量單位** — px、rem、vw、vh、pt、in、cm、mm；按 `U` 循環切換可自訂的單位組合（預設：px → rem → vw → vh）
@@ -334,7 +334,7 @@ MeasureTool 是一款 Chrome 擴充功能，可在任何網頁上直接疊加顯
 | 疊加層 | 說明 |
 |--------|------|
 | 盒模型色環 | 以彩色區塊標示 margin / border / padding / content，並附上數值標籤 |
-| 佈局間隙色塊 | 在子元素之間顯示彩色色塊，標示 gap 與 margin 的大小 |
+| Flex / Grid 間隙斜紋 | 以 45° 紫色斜紋填滿「容器 content box − 每個子的 margin box」，並在同一 flex line / grid row track 內把較矮 / 較窄子的 cross-axis 剩餘空間也視為子佔用，從斜紋區排除。每個 hole 加上紫色虛線邊框。當 selected（或無 selected 時的 hovered）元素的 `display` 為 `flex` / `inline-flex` / `grid` / `inline-grid` 時觸發 |
 | CSS Grid 線條 | 虛線標示 Grid 容器的欄與列邊界 |
 | 元素延伸線 | 紅色虛線從選取元素的四個邊延伸至視口邊界 |
 | 鄰近元素距離標籤 | 顯示選取元素至最近相鄰元素及父元素邊緣的距離 |
@@ -467,8 +467,8 @@ MeasureTool 會自動在相鄰的平行參考線之間繪製距離標籤（水�
 | Border 區域 | 黃色 | 選取元素 |
 | Padding 區域 | 綠色 | 選取元素 |
 | Content 區域 | 藍色 | 選取元素 |
-| 佈局間隙（flex / grid / 其他） | 紫色 | 選取含子元素的容器 |
-| 元素間距（margin） | 琥珀色 | 選取含子元素的容器 |
+| Flex / Grid 間隙斜紋 | 紫色 45° 斜紋 | 選取（或懸停）的 flex / grid 容器；排除子元素 margin 與同 line 內 cross-axis 剩餘空間 |
+| Flex / Grid 間隙邊界 | 紫色虛線 | 沿著斜紋區產生的每個 line-expanded hole 邊緣標示 |
 | CSS Grid 欄 / 列線 | 紫色虛線 | 選取 Grid 容器 |
 | 元素延伸線 | 紅色虛線 | 選取元素 |
 | 鄰近距離標籤 | 白色晶片 | 選取元素 |
