@@ -2169,6 +2169,31 @@
       CTX.rect(rr, ct, -cw, ch);
     }
     CTX.fill('evenodd');
+
+    // Dashed boundary at every hole edge — this is exactly where the hatched
+    // region ends, so the lines mark the line-band cross extent + each item's
+    // main-axis edges (i.e. child × line) without painting the gap strips.
+    const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
+    const violet = _p('--mt-violet') || '#7c5cff';
+    CTX.strokeStyle = violet + 'B3';
+    CTX.lineWidth = 1;
+    CTX.setLineDash([4, 3]);
+    CTX.beginPath();
+    for (const h of holes) {
+      let cl = Math.max(box.left,  h.left);
+      let ct = Math.max(box.top,   h.top);
+      let rr = Math.min(box.right, h.right);
+      let rb = Math.min(box.bottom,h.bottom);
+      if (rr - cl <= 0 || rb - ct <= 0) continue;
+      cl = Math.round(cl) + 0.5;
+      ct = Math.round(ct) + 0.5;
+      rr = Math.round(rr) - 0.5;
+      rb = Math.round(rb) - 0.5;
+      if (rr <= cl || rb <= ct) continue;
+      CTX.rect(cl, ct, rr - cl, rb - ct);
+    }
+    CTX.stroke();
+    CTX.setLineDash([]);
     CTX.restore();
   }
 
