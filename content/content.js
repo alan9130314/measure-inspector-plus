@@ -2170,15 +2170,23 @@
     }
     CTX.fill('evenodd');
 
-    // Dashed boundary at every hole edge — this is exactly where the hatched
-    // region ends, so the lines mark the line-band cross extent + each item's
-    // main-axis edges (i.e. child × line) without painting the gap strips.
+    // Dashed boundary at every child margin-box edge. Margins are part of the
+    // child area here, matching DevTools grid/flex highlighting without
+    // drawing a separate margin split inside the item.
     const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
     const violet = _p('--mt-violet') || '#7c5cff';
     CTX.strokeStyle = violet + 'B3';
     CTX.lineWidth = 1;
     CTX.setLineDash([4, 3]);
     CTX.beginPath();
+    const edgeKeys = new Set();
+    const addEdge = (x1, y1, x2, y2) => {
+      const k = `${Math.round(x1 * 2)},${Math.round(y1 * 2)},${Math.round(x2 * 2)},${Math.round(y2 * 2)}`;
+      if (edgeKeys.has(k)) return;
+      edgeKeys.add(k);
+      CTX.moveTo(x1, y1);
+      CTX.lineTo(x2, y2);
+    };
     for (const h of holes) {
       let cl = Math.max(box.left,  h.left);
       let ct = Math.max(box.top,   h.top);
@@ -2190,7 +2198,10 @@
       rr = Math.round(rr) - 0.5;
       rb = Math.round(rb) - 0.5;
       if (rr <= cl || rb <= ct) continue;
-      CTX.rect(cl, ct, rr - cl, rb - ct);
+      addEdge(cl, ct, rr, ct);
+      addEdge(cl, rb, rr, rb);
+      addEdge(cl, ct, cl, rb);
+      addEdge(rr, ct, rr, rb);
     }
     CTX.stroke();
     CTX.setLineDash([]);
@@ -2216,25 +2227,9 @@
     };
   }
 
-  /** Grid item border boxes (skips #mt-root; unwraps `display: contents`) */
+  /** Grid item margin boxes (skips #mt-root; unwraps `display: contents`) */
   function collectGridItemRects(container) {
-    const out = [];
-    for (const ch of container.children) {
-      if (ch.closest && ch.closest('#mt-root')) continue;
-      let csCh;
-      try { csCh = window.getComputedStyle(ch); } catch (_) { continue; }
-      if (csCh.display === 'contents') {
-        for (const sub of ch.children) {
-          if (sub.closest && sub.closest('#mt-root')) continue;
-          const sr = sub.getBoundingClientRect();
-          if (sr.width > 0 && sr.height > 0) out.push(sr);
-        }
-      } else {
-        const cr = ch.getBoundingClientRect();
-        if (cr.width > 0 && cr.height > 0) out.push(cr);
-      }
-    }
-    return out;
+    return collectChildMarginRects(container);
   }
 
   /** Merge coordinates that differ only by subpixel noise */
