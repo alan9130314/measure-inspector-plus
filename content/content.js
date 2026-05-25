@@ -2123,6 +2123,91 @@
     return holes;
   }
 
+  function parseGridTrackSizes(value) {
+    if (!value || value === 'none' || value === 'normal' || value === 'subgrid' || value === 'masonry') return [];
+    const clean = value.replace(/\[[^\]]*\]/g, ' ');
+    const tracks = [];
+    let token = '';
+    let depth = 0;
+    const pushToken = () => {
+      const t = token.trim();
+      token = '';
+      if (!t) return;
+      const m = t.match(/^(-?\d*\.?\d+)px$/);
+      if (m) tracks.push(Math.max(0, parseFloat(m[1])));
+    };
+    for (const ch of clean) {
+      if (ch === '(') depth++;
+      if (ch === ')') depth = Math.max(0, depth - 1);
+      if (/\s/.test(ch) && depth === 0) {
+        pushToken();
+      } else {
+        token += ch;
+      }
+    }
+    pushToken();
+    return tracks;
+  }
+
+  function resolveGridAxisPlacement(available, tracks, gap, alignValue) {
+    const count = tracks.length;
+    const trackSum = tracks.reduce((sum, v) => sum + v, 0);
+    const baseGaps = Math.max(0, count - 1);
+    const total = trackSum + gap * baseGaps;
+    const free = Math.max(0, available - total);
+    const parts = (alignValue || '').split(/\s+/).filter(Boolean);
+    const align = parts.find(v => v !== 'safe' && v !== 'unsafe') || 'start';
+    let startOffset = 0;
+    let finalGap = gap;
+
+    if (align === 'end' || align === 'right' || align === 'flex-end') {
+      startOffset = free;
+    } else if (align === 'center') {
+      startOffset = free / 2;
+    } else if (align === 'space-between' && count > 1) {
+      finalGap = gap + free / (count - 1);
+    } else if (align === 'space-around' && count > 0) {
+      finalGap = gap + free / count;
+      startOffset = free / (count * 2);
+    } else if (align === 'space-evenly' && count > 0) {
+      finalGap = gap + free / (count + 1);
+      startOffset = free / (count + 1);
+    }
+
+    return { startOffset, gap: finalGap };
+  }
+
+  function gridTrackEdgeLines(start, end, tracks, gap, alignValue) {
+    if (!tracks.length) return [start, end];
+    const { startOffset, gap: resolvedGap } = resolveGridAxisPlacement(end - start, tracks, gap, alignValue);
+    const lines = [start, end];
+    let pos = start + startOffset;
+    for (let i = 0; i < tracks.length; i++) {
+      lines.push(pos);
+      pos += tracks[i];
+      lines.push(pos);
+      if (i < tracks.length - 1) pos += resolvedGap;
+    }
+    return lines
+      .filter(v => Number.isFinite(v) && v >= start - 0.75 && v <= end + 0.75)
+      .sort((a, b) => a - b);
+  }
+
+  function gridTrackLinesFor(cs, box) {
+    const colTracks = parseGridTrackSizes(cs.gridTemplateColumns);
+    const rowTracks = parseGridTrackSizes(cs.gridTemplateRows);
+    const columnGap = parseFloat(cs.columnGap) || 0;
+    const rowGap = parseFloat(cs.rowGap) || 0;
+    return {
+      x: gridTrackEdgeLines(box.left, box.right, colTracks, columnGap, cs.justifyContent),
+      y: gridTrackEdgeLines(box.top, box.bottom, rowTracks, rowGap, cs.alignContent),
+    };
+  }
+
+  function matchesAxisLine(v, lines, eps = 0.75) {
+    return lines.some(line => Math.abs(v - line) <= eps);
+  }
+
   /** Hatched fill on (container content box − line-expanded child boxes) for flex / grid */
   function drawFlexGridGapOverlay(container) {
     if (!container || !container.isConnected || !ROOT) return;
@@ -2149,6 +2234,7 @@
     // Column-direction (flex column / column-reverse) clusters by x-overlap.
     const isRowAxis = !isFlex || !cs.flexDirection.includes('column');
     const holes = buildLineExpandedHoles(childRects, isRowAxis);
+    const trackLines = isGrid ? gridTrackLinesFor(cs, box) : null;
 
     CTX.save();
     CTX.beginPath();
@@ -2198,10 +2284,10 @@
       rr = Math.round(rr) - 0.5;
       rb = Math.round(rb) - 0.5;
       if (rr <= cl || rb <= ct) continue;
-      addEdge(cl, ct, rr, ct);
-      addEdge(cl, rb, rr, rb);
-      addEdge(cl, ct, cl, rb);
-      addEdge(rr, ct, rr, rb);
+      if (!trackLines || !matchesAxisLine(ct - 0.5, trackLines.y)) addEdge(cl, ct, rr, ct);
+      if (!trackLines || !matchesAxisLine(rb + 0.5, trackLines.y)) addEdge(cl, rb, rr, rb);
+      if (!trackLines || !matchesAxisLine(cl - 0.5, trackLines.x)) addEdge(cl, ct, cl, rb);
+      if (!trackLines || !matchesAxisLine(rr + 0.5, trackLines.x)) addEdge(rr, ct, rr, rb);
     }
     CTX.stroke();
     CTX.setLineDash([]);
@@ -2227,21 +2313,7 @@
     };
   }
 
-  /** Grid item margin boxes (skips #mt-root; unwraps `display: contents`) */
-  function collectGridItemRects(container) {
-    return collectChildMarginRects(container);
-  }
-
-  /** Merge coordinates that differ only by subpixel noise */
-  function mergeAxisLines(sorted, eps = 0.55) {
-    const out = [];
-    for (const v of sorted) {
-      if (!out.length || Math.abs(v - out[out.length - 1]) > eps) out.push(v);
-    }
-    return out;
-  }
-
-  /** Draw column/row boundaries inferred from grid-item geometry */
+  /** Draw DevTools-style grid container bounds plus row/column track lines. */
   function drawGridLines(container) {
     if (!container || !container.isConnected || !ROOT) return;
     let cs;
@@ -2249,40 +2321,44 @@
     const disp = cs.display;
     if (disp !== 'grid' && disp !== 'inline-grid') return;
 
-    const rects = collectGridItemRects(container);
-    if (!rects.length) return;
-
     const r0 = container.getBoundingClientRect();
     const box = gridContentBoxFromRect(r0, cs);
     const bw = box.right - box.left;
     const bh = box.bottom - box.top;
     if (bw < 2 || bh < 2) return;
 
-    const xs = rects.flatMap(rr => [rr.left, rr.right]);
-    const ys = rects.flatMap(rr => [rr.top, rr.bottom]);
-    xs.push(box.left, box.right);
-    ys.push(box.top, box.bottom);
-
-    const vertXs = mergeAxisLines(xs.slice().sort((a, b) => a - b));
-    const horizYs = mergeAxisLines(ys.slice().sort((a, b) => a - b));
+    const { x: vertXs, y: horizYs } = gridTrackLinesFor(cs, box);
 
     const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
     const stroke = _p('--mt-violet') || '#7c5cff';
 
     CTX.save();
+    CTX.globalAlpha = 0.92;
+
+    CTX.strokeStyle = stroke;
+    CTX.lineWidth = 1.5;
+    CTX.setLineDash([]);
+    CTX.strokeRect(
+      Math.round(box.left) + 0.5,
+      Math.round(box.top) + 0.5,
+      Math.max(0, Math.round(bw) - 1),
+      Math.max(0, Math.round(bh) - 1)
+    );
+
     CTX.lineWidth = 1;
     CTX.setLineDash([3, 3]);
-    CTX.globalAlpha = 0.92;
     CTX.strokeStyle = stroke;
     CTX.beginPath();
     for (const x of vertXs) {
       if (x < box.left - 1 || x > box.right + 1) continue;
+      if (Math.abs(x - box.left) <= 0.75 || Math.abs(x - box.right) <= 0.75) continue;
       const xi = Math.round(x) + 0.5;
       CTX.moveTo(xi, box.top);
       CTX.lineTo(xi, box.bottom);
     }
     for (const y of horizYs) {
       if (y < box.top - 1 || y > box.bottom + 1) continue;
+      if (Math.abs(y - box.top) <= 0.75 || Math.abs(y - box.bottom) <= 0.75) continue;
       const yi = Math.round(y) + 0.5;
       CTX.moveTo(box.left, yi);
       CTX.lineTo(box.right, yi);
