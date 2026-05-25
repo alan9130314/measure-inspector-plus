@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "MeasureTool",
+  "name": "Measure Inspector+",
   "version": "1.0.0",
   "description": "Web measurement tool: distances, box model, guides, CSS inspector",
   "permissions": ["activeTab", "scripting", "storage"],
@@ -14,7 +14,7 @@
       "16": "icons/icon16.png",
       "48": "icons/icon48.png"
     },
-    "default_title": "MeasureTool (Click to toggle)"
+    "default_title": "Measure Inspector+ (Click to toggle)"
   },
   "content_scripts": [
     {
@@ -39,7 +39,7 @@
       "suggested_key": {
         "default": "Alt+M"
       },
-      "description": "Toggle MeasureTool"
+      "description": "Toggle Measure Inspector+"
     }
   }
 }

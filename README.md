@@ -1,10 +1,10 @@
-# MeasureTool
+# Measure Inspector+
 
 **A browser-based measurement and inspection tool for web designers and developers.**
 
 [English]
 
-MeasureTool is a Chrome extension that overlays measurement data directly on any webpage. Inspect element dimensions, visualize CSS box models, place pixel-perfect guides, and measure distances — all without leaving the browser.
+Measure Inspector+ (Measure Inspector Plus) is a Chrome extension that overlays measurement data directly on any webpage. Inspect element dimensions, visualize CSS box models, place pixel-perfect guides, and measure distances — all without leaving the browser.
 
 ---
 
@@ -29,7 +29,7 @@ MeasureTool is a Chrome extension that overlays measurement data directly on any
 2. Open Chrome and navigate to `chrome://extensions`.
 3. Enable **Developer mode** (toggle in the top-right corner).
 4. Click **Load unpacked** and select the project folder.
-5. The MeasureTool icon appears in your toolbar.
+5. The Measure Inspector+ icon appears in your toolbar.
 
 ---
 
@@ -118,13 +118,13 @@ Press `Q` to remove all guides.
 
 **Distance labels**
 
-MeasureTool automatically draws distance labels between consecutive guides (horizontal guides show vertical spacing; vertical guides show horizontal spacing).
+Measure Inspector+ automatically draws distance labels between consecutive guides (horizontal guides show vertical spacing; vertical guides show horizontal spacing).
 
 ---
 
 ### Cursor Mode `3`
 
-Suspends all MeasureTool interaction so you can use the page normally — click links, scroll, fill forms — while the panel remains visible.
+Suspends all Measure Inspector+ interaction so you can use the page normally — click links, scroll, fill forms — while the panel remains visible.
 
 ---
 
@@ -247,7 +247,7 @@ All settings are saved locally and restored when you reopen the extension.
 
 ## Privacy
 
-MeasureTool operates entirely in your browser:
+Measure Inspector+ operates entirely in your browser:
 
 - No data is sent to any server
 - No analytics or telemetry
@@ -263,13 +263,13 @@ MeasureTool operates entirely in your browser:
 | Edge (Chromium) | Full support |
 | Other browsers | Not supported (Manifest V3) |
 
-# MeasureTool
+# Measure Inspector+
 
 **專為網頁設計師與開發者打造的瀏覽器測量與檢查工具。**
 
 [繁體中文]
 
-MeasureTool 是一款 Chrome 擴充功能，可在任何網頁上直接疊加顯示測量資料。無需離開瀏覽器，即可檢查元素尺寸、視覺化 CSS 盒模型、放置像素級精確的參考線，以及測量元素之間的距離。
+Measure Inspector+（Measure Inspector Plus）是一款 Chrome 擴充功能，可在任何網頁上直接疊加顯示測量資料。無需離開瀏覽器，即可檢查元素尺寸、視覺化 CSS 盒模型、放置像素級精確的參考線，以及測量元素之間的距離。
 
 ---
 
@@ -294,7 +294,7 @@ MeasureTool 是一款 Chrome 擴充功能，可在任何網頁上直接疊加顯
 2. 開啟 Chrome，前往 `chrome://extensions`。
 3. 開啟右上角的**開發人員模式**。
 4. 點擊**載入未封裝項目**，選擇專案資料夾。
-5. 工具列中將出現 MeasureTool 圖示。
+5. 工具列中將出現 Measure Inspector+ 圖示。
 
 ---
 
@@ -383,13 +383,13 @@ MeasureTool 是一款 Chrome 擴充功能，可在任何網頁上直接疊加顯
 
 **距離標籤**
 
-MeasureTool 會自動在相鄰的平行參考線之間繪製距離標籤（水平參考線顯示垂直間距；垂直參考線顯示水平間距）。
+Measure Inspector+ 會自動在相鄰的平行參考線之間繪製距離標籤（水平參考線顯示垂直間距；垂直參考線顯示水平間距）。
 
 ---
 
 ### 游標模式 `3`
 
-暫停所有 MeasureTool 互動，讓你可以正常使用頁面——點擊連結、捲動、填寫表單——同時控制面板仍保持顯示。
+暫停所有 Measure Inspector+ 互動，讓你可以正常使用頁面——點擊連結、捲動、填寫表單——同時控制面板仍保持顯示。
 
 ---
 
@@ -512,7 +512,7 @@ MeasureTool 會自動在相鄰的平行參考線之間繪製距離標籤（水�
 
 ## 隱私說明
 
-MeasureTool 完全在你的瀏覽器本地運作：
+Measure Inspector+ 完全在你的瀏覽器本地運作：
 
 - 不傳送任何資料至伺服器
 - 不進行任何數據分析或遙測

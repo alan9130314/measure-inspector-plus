@@ -1,5 +1,5 @@
 ================================================================
-CHROME WEB STORE LISTING — MeasureTool
+CHROME WEB STORE LISTING — Measure Inspector+
 ================================================================
 
 【簡短說明】(132 字元以內)
@@ -9,7 +9,7 @@ CHROME WEB STORE LISTING — MeasureTool
 
 【完整說明】
 ----------------------------------------------------------------
-MeasureTool 是一款為網頁設計師與前端工程師打造的測量工具，無需開啟 DevTools，直接在頁面上完成所有量測作業。
+Measure Inspector+（Measure Inspector Plus）是一款為網頁設計師與前端工程師打造的測量工具，無需開啟 DevTools，直接在頁面上完成所有量測作業。
 
 主要功能：
 • 懸停任意元素即時顯示寬高與位置
@@ -74,7 +74,7 @@ Web measurement tool: hover to inspect element size, spacing, box model & CSS. S
 
 【Full description】
 ----------------------------------------------------------------
-MeasureTool is a web measurement tool for designers and frontend developers. Measure, inspect, and align elements directly on any webpage — no DevTools required.
+Measure Inspector+ (Measure Inspector Plus) is a web measurement tool for designers and frontend developers. Measure, inspect, and align elements directly on any webpage — no DevTools required.
 
 Features:
 • Hover any element to instantly see its width, height, and position

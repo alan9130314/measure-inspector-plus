@@ -1,14 +1,14 @@
-# Privacy Policy — MeasureTool
+# Privacy Policy — Measure Inspector+
 
 **Last updated: 2026-05-13**
 
 ## Overview
 
-MeasureTool is a browser extension that provides on-page measurement tools for web designers and developers. This privacy policy explains how the extension handles data.
+Measure Inspector+ (Measure Inspector Plus) is a browser extension that provides on-page measurement tools for web designers and developers. This privacy policy explains how the extension handles data.
 
 ## Data Collection
 
-MeasureTool **does not collect any data**. Specifically:
+Measure Inspector+ **does not collect any data**. Specifically:
 
 - No personal information is collected
 - No page content, form data, or user input is read or stored
@@ -25,7 +25,7 @@ This data never leaves your device and is automatically deleted when the extensi
 
 ## Network Activity
 
-MeasureTool makes **no network requests**. There are no external servers, APIs, or third-party services involved.
+Measure Inspector+ makes **no network requests**. There are no external servers, APIs, or third-party services involved.
 
 ## Permissions
 
