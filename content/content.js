@@ -84,6 +84,9 @@
   let _collapseZone = -1;
   // Current snap zone while panel is fully open; -1 = freely positioned
   let _currentSnapZone = -1;
+  // Last user-selected snap zone; used when the initial CSS position is not an exact snap point
+  let _lastSnapZone = -1;
+  let _lastSnapZoneName = '';
 
   // roundRect polyfill for older Chrome
   function ctxRoundRect(ctx, x, y, w, h, r) {
@@ -279,7 +282,10 @@
           document.removeEventListener('mousemove', move, true);
           document.removeEventListener('mouseup', up, true);
           removeSnapGhost();
-          if (hasDragged && S.panelSnap) snapPanelToGrid(PANEL);
+          if (hasDragged && S.panelSnap) {
+            snapPanelToGrid(PANEL);
+            _collapseZone = _currentSnapZone;
+          }
         };
         document.addEventListener('mousemove', move, true);
         document.addEventListener('mouseup', up, true);
@@ -2621,7 +2627,9 @@
     panel.style.top  = `${r.top}px`;
     panel.offsetLeft; // force reflow to commit anchor before applying transition
     _currentSnapZone = nearestSnapZone(panel);
-    const [sl, st] = calcSnapPositions(panel)[_currentSnapZone];
+    const snaps = calcSnapPositions(panel);
+    rememberSnapZone(snaps, _currentSnapZone);
+    const [sl, st] = snaps[_currentSnapZone];
     panel.style.transition = 'left .18s cubic-bezier(0.25,0.46,0.45,0.94), top .18s cubic-bezier(0.25,0.46,0.45,0.94)';
     panel.style.left = `${sl}px`;
     panel.style.top  = `${st}px`;
@@ -2637,6 +2645,51 @@
       if (Math.abs(r.left - snaps[i][0]) < TOLERANCE && Math.abs(r.top - snaps[i][1]) < TOLERANCE) return i;
     }
     return -1;
+  }
+
+  function snapZoneNames(snaps) {
+    if (snaps.length === 6) {
+      return ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+    }
+    if (snaps.length === 4) {
+      return ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+    }
+    if (snaps.length === 2) {
+      return ['top-center', 'bottom-center'];
+    }
+    return [];
+  }
+
+  function rememberSnapZone(snaps, zone) {
+    _lastSnapZone = zone;
+    _lastSnapZoneName = snapZoneNames(snaps)[zone] || '';
+  }
+
+  function findSnapZoneByName(snaps, zoneName) {
+    return snapZoneNames(snaps).indexOf(zoneName);
+  }
+
+  function getBottomCenterZone(snaps) {
+    if (snaps.length === 6) return 4;
+    if (snaps.length === 2) return 1;
+    return -1;
+  }
+
+  function getBottomRightZone(snaps) {
+    if (snaps.length === 6) return 5;
+    if (snaps.length === 4) return 3;
+    return -1;
+  }
+
+  function preferredSnapZone(snaps) {
+    const namedZone = findSnapZoneByName(snaps, _lastSnapZoneName);
+    if (namedZone >= 0) return namedZone;
+    if (_lastSnapZone >= 0 && _lastSnapZone < snaps.length) return _lastSnapZone;
+    const bottomCenter = getBottomCenterZone(snaps);
+    if (bottomCenter >= 0) return bottomCenter;
+    const bottomRight = getBottomRightZone(snaps);
+    if (bottomRight >= 0) return bottomRight;
+    return snaps.length > 0 ? snaps.length - 1 : -1;
   }
 
   // Computes collapsed-button target position. Must be called BEFORE innerHTML is cleared.
@@ -2665,7 +2718,8 @@
         [cx, by],
       ];
     }
-    const zone = findSnapZone(PANEL);
+    let zone = findSnapZone(PANEL);
+    if (zone < 0 && S.panelSnap) zone = preferredSnapZone(collapsedSnaps);
     _collapseZone = zone; // remember for expand
     if (zone >= 0) {
       return { left: collapsedSnaps[zone][0], top: collapsedSnaps[zone][1] };
@@ -2678,6 +2732,7 @@
   function expandToZone(zone) {
     _currentSnapZone = zone;
     const snaps = calcSnapPositions(PANEL);
+    rememberSnapZone(snaps, zone);
     const [sl, st] = snaps[zone];
     const r = PANEL.getBoundingClientRect();
     PANEL.style.transition = '';
