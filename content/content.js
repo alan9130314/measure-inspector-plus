@@ -1107,10 +1107,95 @@
 
   function updateHighlights() {
     clearHighlights();
-    S.selected.forEach(el => createHighlight(el, 'select'));
+    const entries = S.selected
+      .filter(el => el && el.isConnected)
+      .map(el => ({ el, type: 'select' }));
     if (S.hovered && !S.selected.includes(S.hovered)) {
-      createHighlight(S.hovered, 'hover');
+      entries.push({ el: S.hovered, type: 'hover' });
     }
+    const badgeLayouts = entries
+      .map(({ el, type }) => createHighlight(el, type))
+      .filter(Boolean)
+      .sort(compareBadgeLayout);
+    placeSizeBadges(badgeLayouts);
+  }
+
+  function compareBadgeLayout(a, b) {
+    const ar = a.rect;
+    const br = b.rect;
+    const byTop = ar.top - br.top;
+    if (Math.abs(byTop) > 0.5) return byTop;
+    const byLeft = ar.left - br.left;
+    if (Math.abs(byLeft) > 0.5) return byLeft;
+    const byBottom = ar.bottom - br.bottom;
+    if (Math.abs(byBottom) > 0.5) return byBottom;
+    const byRight = ar.right - br.right;
+    if (Math.abs(byRight) > 0.5) return byRight;
+    const typeRank = t => t === 'select' ? 0 : 1;
+    const at = typeRank(a.type);
+    const bt = typeRank(b.type);
+    if (at !== bt) return at - bt;
+    const pos = a.el.compareDocumentPosition(b.el);
+    if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+    if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+    return 0;
+  }
+
+  function placeSizeBadges(layouts) {
+    const occupied = [];
+    layouts.forEach(layout => {
+      const placed = placeSizeBadge(layout, occupied);
+      if (placed) occupied.push(placed);
+    });
+  }
+
+  function placeSizeBadge({ badge, rect: r }, occupied) {
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
+    const bw = badge.offsetWidth || 1;
+    const bh = badge.offsetHeight || 1;
+    const GAP = 4;
+    const PAD = 4;
+    const clampX = x => Math.max(PAD, Math.min(vw - bw - PAD, x));
+    const clampY = y => Math.max(PAD, Math.min(vh - bh - PAD, y));
+    const overlaps = (left, top) => {
+      const cx = left + bw / 2;
+      const cy = top + bh / 2;
+      return occupied.some(or =>
+        Math.abs(cx - or.cx) < (bw + or.w) / 2 + GAP &&
+        Math.abs(cy - or.cy) < (bh + or.h) / 2 + GAP
+      );
+    };
+
+    const above = r.top - bh - 2;
+    const below = r.bottom + 2;
+    const candidates = [
+      { left: r.left, top: above },
+      { left: r.left, top: below },
+      { left: r.right - bw, top: above },
+      { left: r.right - bw, top: below },
+      { left: r.left + (r.width - bw) / 2, top: above },
+      { left: r.left + (r.width - bw) / 2, top: below },
+      { left: r.left - bw - 2, top: r.top + (r.height - bh) / 2 },
+      { left: r.right + 2, top: r.top + (r.height - bh) / 2 },
+    ];
+
+    const preferred = r.top < bh + 4 ? candidates.slice(1) : candidates;
+    for (const p of preferred) {
+      const left = clampX(p.left);
+      const top = clampY(p.top);
+      if (!overlaps(left, top)) {
+        badge.style.left = `${left}px`;
+        badge.style.top = `${top}px`;
+        return { cx: left + bw / 2, cy: top + bh / 2, w: bw, h: bh };
+      }
+    }
+
+    const fallbackLeft = clampX(candidates[0].left);
+    const fallbackTop = clampY(candidates[0].top);
+    badge.style.left = `${fallbackLeft}px`;
+    badge.style.top = `${fallbackTop}px`;
+    return { cx: fallbackLeft + bw / 2, cy: fallbackTop + bh / 2, w: bw, h: bh };
   }
 
   function createHighlight(el, type) {
@@ -1124,11 +1209,11 @@
     const badge = document.createElement('div');
     badge.className = `mt-size-badge mt-size-badge-${type}`;
     badge.textContent = `${fmtU(r.width)} × ${fmtU(r.height)}`;
-    const bt = r.top < 22 ? r.bottom + 2 : r.top - 20;
-    badge.style.cssText = `left:${r.left}px;top:${bt}px;`;
+    badge.style.cssText = `left:${r.left}px;top:${r.top}px;`;
 
     ROOT.appendChild(box);
     ROOT.appendChild(badge);
+    return { el, type, rect: r, badge };
   }
 
   // ── Inspector Panel ───────────────────────────────────────────────────────
