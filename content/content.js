@@ -104,7 +104,7 @@
    * so text does not drift vs DOM rendering).
    */
   function drawMetricChip(cx, cy, text, bgColor, fgColor, chipH = METRIC_CHIP_H, padX = METRIC_CHIP_PAD_X, rx = METRIC_CHIP_RX) {
-    if (!text) return;
+    if (!text) return null;
     const family = getComputedStyle(ROOT).getPropertyValue('--mt-mono').trim();
     CTX.font = `500 10px ${family}`;
     CTX.textAlign = 'center';
@@ -129,6 +129,17 @@
     CTX.textBaseline = 'alphabetic';
     CTX.fillStyle = fgColor;
     CTX.fillText(text, mid, baselineY);
+
+    return { cx: mid, cy: top + chipH / 2, w: tw, h: chipH };
+  }
+
+  function measureMetricChip(text, chipH = METRIC_CHIP_H, padX = METRIC_CHIP_PAD_X) {
+    const family = getComputedStyle(ROOT).getPropertyValue('--mt-mono').trim();
+    CTX.font = `500 10px ${family}`;
+    return {
+      w: Math.ceil(CTX.measureText(text).width + padX * 2),
+      h: chipH,
+    };
   }
 
   function ensureMeasureToolFonts() {
@@ -157,7 +168,7 @@
 
   let PANEL, MARQUEE;
   let distLabels  = [];
-  let labelSlots  = []; // { cx, cy } — shared occupancy tracker for all canvas/DOM labels
+  let labelSlots  = []; // { cx, cy, w, h } — shared occupancy tracker for all canvas/DOM labels
 
   // ── Build UI ─────────────────────────────────────────────────────────────
   function applyTheme() {
@@ -1339,15 +1350,29 @@
     labelSlots  = [];
   }
 
-  function registerLabelSlot(cx, cy) {
-    labelSlots.push({ cx, cy });
+  function registerLabelSlot(cx, cy, w = 48, h = 18) {
+    labelSlots.push({ cx, cy, w, h });
   }
 
-  function findFreeLabelSlot(cx, cy, axis, vw = 1e9, vh = 1e9) {
-    const OVL_W = 48, OVL_H = 18, STEP = METRIC_CHIP_H + 4;
-    const hit = (px, py) => labelSlots.some(s =>
-      Math.abs(px - s.cx) < OVL_W && Math.abs(py - s.cy) < OVL_H
+  function labelSlotsOverlap(cx, cy, w = 48, h = 18, padX = 0, padY = 0) {
+    return labelSlots.some(s =>
+      Math.abs(cx - s.cx) < (w + (s.w || 48)) / 2 + padX &&
+      Math.abs(cy - s.cy) < (h + (s.h || 18)) / 2 + padY
     );
+  }
+
+  function registerSizeBadgeSlots() {
+    if (!ROOT) return;
+    ROOT.querySelectorAll('.mt-size-badge').forEach(badge => {
+      const r = badge.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      registerLabelSlot(r.left + r.width / 2, r.top + r.height / 2, r.width, r.height);
+    });
+  }
+
+  function findFreeLabelSlot(cx, cy, axis, vw = 1e9, vh = 1e9, w = 48, h = 18) {
+    const STEP = METRIC_CHIP_H + 4;
+    const hit = (px, py) => labelSlotsOverlap(px, py, w, h, 6, 4);
     if (!hit(cx, cy)) return { cx, cy };
     for (let i = 1; i <= 8; i++) {
       const off = i * STEP;
@@ -1469,14 +1494,13 @@
       if (fitsInZone && !(smallEl && inBorderBox(dx, dy))) {
         const cx = Math.max(CHIP_PAD, Math.min(VW - CHIP_PAD, dx));
         const cy = Math.max(CHIP_PAD, Math.min(VH - CHIP_PAD, dy));
-        const conflict = labelSlots.some(s =>
-          Math.abs(cx - s.cx) < 48 && Math.abs(cy - s.cy) < 18
-        );
+        const { w: chipW, h: chipH } = measureMetricChip(fmtU(val));
+        const conflict = labelSlotsOverlap(cx, cy, chipW, chipH, 6, 4);
         if (conflict) {
           ovfItems.push({ text: `${key} ${fmtU(val)}`, bg, fg });
         } else {
-          drawMetricChip(cx, cy, fmtU(val), bg, fg);
-          registerLabelSlot(cx, cy);
+          const slot = drawMetricChip(cx, cy, fmtU(val), bg, fg);
+          if (slot) registerLabelSlot(slot.cx, slot.cy, slot.w, slot.h);
         }
       } else {
         ovfItems.push({ text: `${key} ${fmtU(val)}`, bg, fg });
@@ -1501,8 +1525,8 @@
       if (!smallEl && cw >= 30 && ch >= 16) {
         const scx = Math.max(CHIP_PAD, Math.min(VW - CHIP_PAD, contentBox.l + cw/2));
         const scy = Math.max(CHIP_PAD, Math.min(VH - CHIP_PAD, contentBox.t + ch/2));
-        drawMetricChip(scx, scy, sizeLabel, L_C_BG, L_C_FG, 18, 4, 4);
-        registerLabelSlot(scx, scy);
+        const slot = drawMetricChip(scx, scy, sizeLabel, L_C_BG, L_C_FG, 18, 4, 4);
+        if (slot) registerLabelSlot(slot.cx, slot.cy, slot.w, slot.h);
       } else {
         ovfItems.push({ text: sizeLabel, bg: L_C_BG, fg: L_C_FG });
       }
@@ -1531,9 +1555,7 @@
     const calloutH = items.length * (CHIP_H + ROW_GAP) - ROW_GAP + PAD_Y * 2;
 
     // Try anchors in priority order; pick first that doesn't conflict with existing slots
-    const slotFree = (pcx, pcy) => !labelSlots.some(s =>
-      Math.abs(pcx - s.cx) < calloutW / 2 + 20 && Math.abs(pcy - s.cy) < calloutH / 2 + 12
-    );
+    const slotFree = (pcx, pcy) => !labelSlotsOverlap(pcx, pcy, calloutW, calloutH, 20, 12);
     const anchors = [
       marginBox.r + calloutW + MARGIN < vw
         ? { ax: marginBox.r + MARGIN, ay: Math.max(8, Math.min(vh - calloutH - 8, elCY - calloutH / 2)) } : null,
@@ -1565,8 +1587,8 @@
 
     items.forEach(({ text, bg, fg }, i) => {
       const chipCY = ay + PAD_Y + i * (CHIP_H + ROW_GAP) + CHIP_H / 2;
-      drawMetricChip(calloutCX, chipCY, text, bg, fg, CHIP_H, PAD_X, 3);
-      registerLabelSlot(calloutCX, chipCY);
+      const slot = drawMetricChip(calloutCX, chipCY, text, bg, fg, CHIP_H, PAD_X, 3);
+      if (slot) registerLabelSlot(slot.cx, slot.cy, slot.w, slot.h);
     });
 
     CTX.restore();
@@ -1583,6 +1605,7 @@
     CTX.clearRect(0, 0, CANVAS.width / (window.devicePixelRatio || 1), CANVAS.height / (window.devicePixelRatio || 1));
     clearGuideEls();
     clearDistLabels();
+    registerSizeBadgeSlots();
 
     drawGuides();
 
@@ -1897,9 +1920,11 @@
     const fg = chipKind === 'guide'
       ? (_p('--mt-label-guide-metric-fg') || _p('--mt-label-orange-fg') || '#fff8f6')
       : (_p('--mt-label-orange-fg') || '#ffe3b3');
-    const { cx: fx, cy: fy } = findFreeLabelSlot(lx, ly, axis);
-    drawMetricChip(fx, fy, fmtU(dist), bg, fg);
-    registerLabelSlot(fx, fy);
+    const text = fmtU(dist);
+    const { w, h } = measureMetricChip(text);
+    const { cx: fx, cy: fy } = findFreeLabelSlot(lx, ly, axis, vw, vh, w, h);
+    const slot = drawMetricChip(fx, fy, text, bg, fg);
+    if (slot) registerLabelSlot(slot.cx, slot.cy, slot.w, slot.h);
   }
 
   // ── Guide rendering ───────────────────────────────────────────────────────
