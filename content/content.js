@@ -177,7 +177,7 @@
   function applyTheme() {
     if (!ROOT) return;
     ROOT.classList.toggle('mt-theme-light', S.theme === 'light');
-    _hatchPattern = null; _hatchKey = '';
+    _hatchPatterns.clear();
   }
 
   function buildUI() {
@@ -2133,34 +2133,41 @@
   }
 
   // ── Flex / Grid gap hatch pattern (inspector) ─────────────────────────────
-  let _hatchPattern = null;
-  let _hatchKey = '';
-  function getGapHatchPattern() {
+  const _hatchPatterns = new Map();
+  function getGapHatchPattern(direction = 'backslash') {
     if (!CTX) return null;
     const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
     const color = _p('--mt-violet') || '#7c5cff';
-    const tile = 10;
-    const key = `${color}|${tile}`;
-    if (_hatchPattern && _hatchKey === key) return _hatchPattern;
+    const tile = 40;
+    const lineStep = 10;
+    const dashPeriod = tile * Math.SQRT2 / 6;
+    const dashLen = dashPeriod * 0.64;
+    const gapLen = dashPeriod - dashLen;
+    const key = `${color}|${tile}|${lineStep}|${direction}`;
+    if (_hatchPatterns.has(key)) return _hatchPatterns.get(key);
     const c = document.createElement('canvas');
     c.width = c.height = tile;
     const cx = c.getContext('2d');
-    cx.fillStyle = color + '1A';
+    cx.fillStyle = color + '42';
     cx.fillRect(0, 0, tile, tile);
-    cx.strokeStyle = color + '66';
-    cx.lineWidth = 1;
-    cx.lineCap = 'square';
+    cx.strokeStyle = color + 'BF';
+    cx.lineWidth = 0.9;
+    cx.lineCap = 'butt';
+    cx.setLineDash([dashLen, gapLen]);
     cx.beginPath();
-    cx.moveTo(-1, -1);
-    cx.lineTo(tile + 1, tile + 1);
-    cx.moveTo(tile - 1, -1);
-    cx.lineTo(tile + 1, 1);
-    cx.moveTo(-1, tile - 1);
-    cx.lineTo(1, tile + 1);
+    for (let off = -tile; off <= tile; off += lineStep) {
+      if (direction === 'slash') {
+        cx.moveTo(off, tile);
+        cx.lineTo(off + tile, 0);
+      } else {
+        cx.moveTo(off, 0);
+        cx.lineTo(off + tile, tile);
+      }
+    }
     cx.stroke();
-    _hatchPattern = CTX.createPattern(c, 'repeat');
-    _hatchKey = key;
-    return _hatchPattern;
+    const pattern = CTX.createPattern(c, 'repeat');
+    _hatchPatterns.set(key, pattern);
+    return pattern;
   }
 
   function marginBoxFor(el) {
@@ -2311,6 +2318,20 @@
       .sort((a, b) => a - b);
   }
 
+  function gridTrackBoxes(start, end, tracks, gap, alignValue) {
+    if (!tracks.length) return [];
+    const { startOffset, gap: resolvedGap } = resolveGridAxisPlacement(end - start, tracks, gap, alignValue);
+    const boxes = [];
+    let pos = start + startOffset;
+    for (let i = 0; i < tracks.length; i++) {
+      const trackStart = pos;
+      const trackEnd = pos + tracks[i];
+      boxes.push({ start: trackStart, end: trackEnd });
+      pos = trackEnd + (i < tracks.length - 1 ? resolvedGap : 0);
+    }
+    return boxes.filter(t => t.end >= start - 0.75 && t.start <= end + 0.75);
+  }
+
   function gridTrackLinesFor(cs, box) {
     const colTracks = parseGridTrackSizes(cs.gridTemplateColumns);
     const rowTracks = parseGridTrackSizes(cs.gridTemplateRows);
@@ -2324,6 +2345,96 @@
 
   function matchesAxisLine(v, lines, eps = 0.75) {
     return lines.some(line => Math.abs(v - line) <= eps);
+  }
+
+  function fillDirectionalGapCells(box, holes, horizontalPattern, verticalPattern) {
+    const xs = [box.left, box.right];
+    const ys = [box.top, box.bottom];
+    const clipped = [];
+
+    for (const h of holes) {
+      const cl = Math.max(box.left,  h.left);
+      const ct = Math.max(box.top,   h.top);
+      const rr = Math.min(box.right, h.right);
+      const rb = Math.min(box.bottom,h.bottom);
+      if (rr - cl <= 0 || rb - ct <= 0) continue;
+      clipped.push({ left: cl, top: ct, right: rr, bottom: rb });
+      xs.push(cl, rr);
+      ys.push(ct, rb);
+    }
+
+    const uniq = values => values
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b)
+      .reduce((out, v) => {
+        if (!out.length || Math.abs(v - out[out.length - 1]) > 0.75) out.push(v);
+        return out;
+      }, []);
+
+    const ux = uniq(xs);
+    const uy = uniq(ys);
+    const insideHole = (x, y) => clipped.some(r =>
+      x >= r.left - 0.5 && x <= r.right + 0.5 &&
+      y >= r.top  - 0.5 && y <= r.bottom + 0.5
+    );
+
+    for (let yi = 0; yi < uy.length - 1; yi++) {
+      for (let xi = 0; xi < ux.length - 1; xi++) {
+        const x1 = ux[xi], x2 = ux[xi + 1];
+        const y1 = uy[yi], y2 = uy[yi + 1];
+        const w = x2 - x1;
+        const h = y2 - y1;
+        if (w <= 0.5 || h <= 0.5) continue;
+        if (insideHole((x1 + x2) / 2, (y1 + y2) / 2)) continue;
+        CTX.fillStyle = w >= h ? horizontalPattern : verticalPattern;
+        CTX.fillRect(x1, y1, w, h);
+      }
+    }
+  }
+
+  function fillGridCssGapRects(cs, box, horizontalPattern, verticalPattern) {
+    const colTracks = gridTrackBoxes(
+      box.left,
+      box.right,
+      parseGridTrackSizes(cs.gridTemplateColumns),
+      parseFloat(cs.columnGap) || 0,
+      cs.justifyContent
+    );
+    const rowTracks = gridTrackBoxes(
+      box.top,
+      box.bottom,
+      parseGridTrackSizes(cs.gridTemplateRows),
+      parseFloat(cs.rowGap) || 0,
+      cs.alignContent
+    );
+    const columnGap = parseFloat(cs.columnGap) || 0;
+    const rowGap = parseFloat(cs.rowGap) || 0;
+
+    if (columnGap >= 0.5) {
+      for (let i = 0; i < colTracks.length - 1; i++) {
+        const actualStart = colTracks[i].end;
+        const actualEnd = colTracks[i + 1].start;
+        const actual = actualEnd - actualStart;
+        if (actual < 0.5) continue;
+        const width = Math.min(columnGap, actual);
+        const mid = (actualStart + actualEnd) / 2;
+        CTX.fillStyle = verticalPattern;
+        CTX.fillRect(mid - width / 2, box.top, width, box.bottom - box.top);
+      }
+    }
+
+    if (rowGap >= 0.5) {
+      for (let i = 0; i < rowTracks.length - 1; i++) {
+        const actualStart = rowTracks[i].end;
+        const actualEnd = rowTracks[i + 1].start;
+        const actual = actualEnd - actualStart;
+        if (actual < 0.5) continue;
+        const height = Math.min(rowGap, actual);
+        const mid = (actualStart + actualEnd) / 2;
+        CTX.fillStyle = horizontalPattern;
+        CTX.fillRect(box.left, mid - height / 2, box.right - box.left, height);
+      }
+    }
   }
 
   /** Hatched fill on (container content box − line-expanded child boxes) for flex / grid */
@@ -2345,8 +2456,9 @@
     const childRects = collectChildMarginRects(container);
     if (!childRects.length) return;
 
-    const pattern = getGapHatchPattern();
-    if (!pattern) return;
+    const horizontalPattern = getGapHatchPattern('backslash');
+    const verticalPattern = getGapHatchPattern('slash');
+    if (!horizontalPattern || !verticalPattern) return;
 
     // Row-direction (flex row / row-reverse, or grid) clusters by y-overlap.
     // Column-direction (flex column / column-reverse) clusters by x-overlap.
@@ -2359,20 +2471,8 @@
     CTX.rect(box.left, box.top, bw, bh);
     CTX.clip();
 
-    CTX.fillStyle = pattern;
-    CTX.beginPath();
-    CTX.rect(box.left, box.top, bw, bh);
-    for (const h of holes) {
-      const cl = Math.max(box.left,  h.left);
-      const ct = Math.max(box.top,   h.top);
-      const rr = Math.min(box.right, h.right);
-      const rb = Math.min(box.bottom,h.bottom);
-      const cw = rr - cl;
-      const ch = rb - ct;
-      if (cw <= 0 || ch <= 0) continue;
-      CTX.rect(rr, ct, -cw, ch);
-    }
-    CTX.fill('evenodd');
+    if (isGrid) fillGridCssGapRects(cs, box, horizontalPattern, verticalPattern);
+    else fillDirectionalGapCells(box, holes, horizontalPattern, verticalPattern);
 
     // Dashed boundary at every child margin-box edge. Margins are part of the
     // child area here, matching DevTools grid/flex highlighting without
