@@ -2193,15 +2193,19 @@
   }
 
   /** Margin boxes of grid/flex children (skips #mt-root; unwraps `display: contents`) */
-  function collectChildMarginRects(container) {
+  function collectChildMarginRects(container, { skipOutOfFlow = false } = {}) {
     const out = [];
     for (const ch of container.children) {
       if (ch.closest && ch.closest('#mt-root')) continue;
       let css;
       try { css = window.getComputedStyle(ch); } catch (_) { continue; }
+      if (skipOutOfFlow && (css.position === 'absolute' || css.position === 'fixed')) continue;
       if (css.display === 'contents') {
         for (const sub of ch.children) {
           if (sub.closest && sub.closest('#mt-root')) continue;
+          let subCss;
+          try { subCss = window.getComputedStyle(sub); } catch (_) { continue; }
+          if (skipOutOfFlow && (subCss.position === 'absolute' || subCss.position === 'fixed')) continue;
           const m = marginBoxFor(sub);
           if (m) out.push(m);
         }
@@ -2397,6 +2401,173 @@
     }
   }
 
+  function buildFlexLines(rects, isRowAxis) {
+    if (!rects.length) return [];
+    const sorted = rects.slice().sort((a, b) =>
+      isRowAxis ? (a.top - b.top || a.left - b.left) : (a.left - b.left || a.top - b.top)
+    );
+    const lines = [];
+    for (const r of sorted) {
+      const crossStart = isRowAxis ? r.top : r.left;
+      const crossEnd = isRowAxis ? r.bottom : r.right;
+      let line = null;
+      for (const ln of lines) {
+        if (crossStart < ln.crossEnd && crossEnd > ln.crossStart) {
+          line = ln;
+          break;
+        }
+      }
+      if (!line) {
+        line = { items: [], crossStart, crossEnd };
+        lines.push(line);
+      }
+      line.items.push(r);
+      line.crossStart = Math.min(line.crossStart, crossStart);
+      line.crossEnd = Math.max(line.crossEnd, crossEnd);
+    }
+
+    for (const ln of lines) {
+      ln.items.sort((a, b) => isRowAxis ? (a.left - b.left) : (a.top - b.top));
+      ln.mainStart = Math.min(...ln.items.map(r => isRowAxis ? r.left : r.top));
+      ln.mainEnd = Math.max(...ln.items.map(r => isRowAxis ? r.right : r.bottom));
+    }
+    return lines.sort((a, b) => a.crossStart - b.crossStart);
+  }
+
+  function rectForFlexAxes(isRowAxis, mainStart, crossStart, mainEnd, crossEnd) {
+    return isRowAxis
+      ? { left: mainStart, top: crossStart, right: mainEnd, bottom: crossEnd }
+      : { left: crossStart, top: mainStart, right: crossEnd, bottom: mainEnd };
+  }
+
+  function fillRectClipped(box, rect, pattern) {
+    const left = Math.max(box.left, rect.left);
+    const top = Math.max(box.top, rect.top);
+    const right = Math.min(box.right, rect.right);
+    const bottom = Math.min(box.bottom, rect.bottom);
+    if (right - left < 0.5 || bottom - top < 0.5) return;
+    CTX.fillStyle = pattern;
+    CTX.fillRect(left, top, right - left, bottom - top);
+  }
+
+  function drawFlexContentBorder(box) {
+    const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
+    const violet = _p('--mt-violet') || '#7c5cff';
+    const bw = box.right - box.left;
+    const bh = box.bottom - box.top;
+    CTX.save();
+    CTX.strokeStyle = violet + 'CC';
+    CTX.lineWidth = 1;
+    CTX.setLineDash([4, 3]);
+    CTX.strokeRect(
+      Math.round(box.left) + 0.5,
+      Math.round(box.top) + 0.5,
+      Math.max(0, Math.round(bw) - 1),
+      Math.max(0, Math.round(bh) - 1)
+    );
+    CTX.restore();
+  }
+
+  function drawFlexItemSeparators(box, lines, isRowAxis) {
+    const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
+    const violet = _p('--mt-violet') || '#7c5cff';
+    const crossBoxStart = isRowAxis ? box.top : box.left;
+    const crossBoxEnd = isRowAxis ? box.bottom : box.right;
+    const edgeKeys = new Set();
+
+    CTX.save();
+    CTX.strokeStyle = violet + 'CC';
+    CTX.lineWidth = 1;
+    CTX.setLineDash([4, 3]);
+    CTX.beginPath();
+
+    const addAxisSeparator = (mainPos, crossStart, crossEnd) => {
+      const m = Math.round(mainPos) + 0.5;
+      const c1 = Math.round(crossStart) + 0.5;
+      const c2 = Math.round(crossEnd) - 0.5;
+      if (c2 <= c1) return;
+      const key = `${isRowAxis ? 'v' : 'h'}:${Math.round(m * 2)}:${Math.round(c1 * 2)}:${Math.round(c2 * 2)}`;
+      if (edgeKeys.has(key)) return;
+      edgeKeys.add(key);
+      if (isRowAxis) {
+        CTX.moveTo(m, c1);
+        CTX.lineTo(m, c2);
+      } else {
+        CTX.moveTo(c1, m);
+        CTX.lineTo(c2, m);
+      }
+    };
+
+    for (const ln of lines) {
+      const crossStart = lines.length === 1 ? crossBoxStart : Math.max(crossBoxStart, ln.crossStart);
+      const crossEnd = lines.length === 1 ? crossBoxEnd : Math.min(crossBoxEnd, ln.crossEnd);
+      for (const item of ln.items) {
+        addAxisSeparator(isRowAxis ? item.left : item.top, crossStart, crossEnd);
+        addAxisSeparator(isRowAxis ? item.right : item.bottom, crossStart, crossEnd);
+      }
+    }
+
+    CTX.stroke();
+    CTX.restore();
+  }
+
+  function drawFlexGapOverlay(cs, box, childRects, horizontalPattern, verticalPattern) {
+    const isRowAxis = !cs.flexDirection.includes('column');
+    const lines = buildFlexLines(childRects, isRowAxis);
+
+    const mainBoxStart = isRowAxis ? box.left : box.top;
+    const mainBoxEnd = isRowAxis ? box.right : box.bottom;
+    const crossBoxStart = isRowAxis ? box.top : box.left;
+    const crossBoxEnd = isRowAxis ? box.bottom : box.right;
+    // Chrome's flex overlay uses the same hatch direction for both main-axis
+    // and cross-axis spaces; only grid uses direction to distinguish axes.
+    const mainPattern = horizontalPattern;
+    const crossPattern = horizontalPattern;
+
+    CTX.save();
+    CTX.beginPath();
+    CTX.rect(box.left, box.top, box.right - box.left, box.bottom - box.top);
+    CTX.clip();
+
+    for (const ln of lines) {
+      const crossStart = lines.length === 1 ? crossBoxStart : Math.max(crossBoxStart, ln.crossStart);
+      const crossEnd = lines.length === 1 ? crossBoxEnd : Math.min(crossBoxEnd, ln.crossEnd);
+      if (crossEnd - crossStart < 0.5) continue;
+
+      const fillMainSpace = (start, end) => {
+        if (end - start < 0.5) return;
+        fillRectClipped(box, rectForFlexAxes(isRowAxis, start, crossStart, end, crossEnd), mainPattern);
+      };
+
+      fillMainSpace(mainBoxStart, ln.mainStart);
+      for (let i = 0; i < ln.items.length - 1; i++) {
+        const a = ln.items[i];
+        const b = ln.items[i + 1];
+        fillMainSpace(isRowAxis ? a.right : a.bottom, isRowAxis ? b.left : b.top);
+      }
+      fillMainSpace(ln.mainEnd, mainBoxEnd);
+    }
+
+    // Chrome treats cross-axis hatching as line gap / align-content space.
+    // A single flex line does not hatch leftover cross-axis space around items.
+    if (lines.length > 1) {
+      const fillCrossSpace = (start, end) => {
+        if (end - start < 0.5) return;
+        fillRectClipped(box, rectForFlexAxes(isRowAxis, mainBoxStart, start, mainBoxEnd, end), crossPattern);
+      };
+
+      fillCrossSpace(crossBoxStart, lines[0].crossStart);
+      for (let i = 0; i < lines.length - 1; i++) {
+        fillCrossSpace(lines[i].crossEnd, lines[i + 1].crossStart);
+      }
+      fillCrossSpace(lines[lines.length - 1].crossEnd, crossBoxEnd);
+    }
+
+    CTX.restore();
+    drawFlexItemSeparators(box, lines, isRowAxis);
+    drawFlexContentBorder(box);
+  }
+
   function fillGridCssGapRects(cs, box, horizontalPattern, verticalPattern) {
     const colTracks = gridTrackBoxes(
       box.left,
@@ -2442,7 +2613,7 @@
     }
   }
 
-  /** Hatched fill on (container content box − line-expanded child boxes) for flex / grid */
+  /** DevTools-style flex gap/free-space hatch and existing grid gap hatch. */
   function drawFlexGridGapOverlay(container) {
     if (!container || !container.isConnected || !ROOT) return;
     let cs;
@@ -2458,17 +2629,20 @@
     const bh = box.bottom - box.top;
     if (bw < 2 || bh < 2) return;
 
-    const childRects = collectChildMarginRects(container);
-    if (!childRects.length) return;
-
     const horizontalPattern = getGapHatchPattern('backslash');
     const verticalPattern = getGapHatchPattern('slash');
     if (!horizontalPattern || !verticalPattern) return;
 
-    // Row-direction (flex row / row-reverse, or grid) clusters by y-overlap.
-    // Column-direction (flex column / column-reverse) clusters by x-overlap.
-    const isRowAxis = !isFlex || !cs.flexDirection.includes('column');
-    const holes = buildLineExpandedHoles(childRects, isRowAxis);
+    if (isFlex) {
+      const childRects = collectChildMarginRects(container, { skipOutOfFlow: true });
+      drawFlexGapOverlay(cs, box, childRects, horizontalPattern, verticalPattern);
+      return;
+    }
+
+    const childRects = collectChildMarginRects(container);
+    if (!childRects.length) return;
+
+    const holes = buildLineExpandedHoles(childRects, true);
     const trackLines = isGrid ? gridTrackLinesFor(cs, box) : null;
 
     CTX.save();
@@ -2479,9 +2653,8 @@
     if (isGrid) fillGridCssGapRects(cs, box, horizontalPattern, verticalPattern);
     else fillDirectionalGapCells(box, holes, horizontalPattern, verticalPattern);
 
-    // Dashed boundary at every child margin-box edge. Margins are part of the
-    // child area here, matching DevTools grid/flex highlighting without
-    // drawing a separate margin split inside the item.
+    // Dashed boundary at every grid child margin-box edge. Flex uses
+    // drawFlexGapOverlay(), which follows Chrome's container/space model.
     const _p = n => getComputedStyle(ROOT).getPropertyValue(n).trim();
     const violet = _p('--mt-violet') || '#7c5cff';
     CTX.strokeStyle = violet + 'B3';

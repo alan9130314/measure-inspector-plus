@@ -14,7 +14,7 @@ Measure Inspector+ (Measure Inspector Plus) is a Chrome extension that overlays 
 - **Guide Lines** — place draggable horizontal and vertical guides with snap-to-element alignment
 - **Multi-select & Marquee** — select multiple elements with Shift+Click or drag to measure distances between them
 - **Box Model Overlay** — color-coded margin / border / padding / content visualization on canvas
-- **Flex / Grid Gap Overlay** — DevTools-style 45° diagonal hatched stripes mark only the true gap and free space inside a flex / grid container; each child's margin box is excluded, and within a flex line / grid row track the cross-axis leftover (e.g. below shorter items with `align-items: flex-start`) is also excluded. Hole edges are outlined with a dashed boundary
+- **Flex / Grid Gap Overlay** — DevTools-style 45° diagonal hatched stripes mark true gap and layout free space. Flex containers use dashed content-box and item separator lines with hatching on main-axis gaps / distributed space and multi-line cross-axis gaps / distributed space; grid containers keep track-aware gap hatching
 - **CSS Grid Lines** — overlays column and row boundaries for grid containers
 - **DOM Navigation** — traverse parent/child elements with arrow keys
 - **8 Measurement Units** — px, rem, vw, vh, pt, in, cm, mm; press `U` to cycle through a configurable subset (default: px → rem → vw → vh)
@@ -69,7 +69,7 @@ Inspect individual elements and measure distances between them.
 | Overlay | Description |
 |---------|-------------|
 | Box model rings | Color-coded margin / border / padding / content areas with dimension labels |
-| Flex / Grid gap hatch | 45° diagonal purple stripes filling the container's content box minus each child's margin box, line-expanded so cross-axis leftover within the same flex line / grid row track is treated as item-occupied. A dashed violet boundary outlines every hole. Triggered for any selected (or hovered, when nothing is selected) element whose `display` resolves to `flex`, `inline-flex`, `grid`, or `inline-grid` |
+| Flex / Grid gap hatch | 45° diagonal purple stripes for flex main-axis gaps / distributed space and multi-line cross-axis gaps / distributed space; grid containers use track-aware gap hatching. Flex containers are outlined with dashed content-box and item separator lines. Triggered for any selected (or hovered, when nothing is selected) element whose `display` resolves to `flex`, `inline-flex`, `grid`, or `inline-grid` |
 | CSS Grid lines | Dashed lines tracing row and column boundaries |
 | Element extension lines | Red dashed lines extending each selected element's edges to the viewport boundary |
 | Neighbor distance labels | Distance from a hovered element to its nearest non-ancestor neighbors, when no element is selected |
@@ -225,8 +225,8 @@ The cycle configuration is saved and persists across sessions. The rem root valu
 | Border area | Yellow | Selected element |
 | Padding area | Green | Selected element |
 | Content area | Blue | Selected element |
-| Flex / Grid gap hatch | Purple 45° diagonal stripes | Selected flex / grid container — child margin and within-line cross-axis leftover are excluded |
-| Flex / Grid gap boundary | Purple dashed outline | Outlines every line-expanded hole produced by the hatch overlay |
+| Flex / Grid gap hatch | Purple 45° diagonal stripes | Selected flex / grid container — flex main-axis gaps / distributed space and multi-line cross-axis spaces; grid track gaps |
+| Flex / Grid gap boundary | Purple dashed outline | Flex container content-box and item separator lines; grid gap hole boundaries |
 | CSS Grid column / row lines | Purple solid outline and dashed track lines | Selected grid container |
 
 #### Marquee Selection
@@ -309,7 +309,7 @@ Measure Inspector+（Measure Inspector Plus）是一款 Chrome 擴充功能，�
 - **參考線** — 可拖曳的水平與垂直參考線，支援自動吸附至元素邊緣
 - **多選與矩形框選** — 使用 Shift+Click 或拖曳框選多個元素，量測彼此之間的距離
 - **盒模型疊加層** — 以彩色區塊在 Canvas 上視覺化 margin / border / padding / content
-- **Flex / Grid 間隙疊加層** — DevTools 風格的 45° 紫色斜紋只標示 flex / grid 容器內真正的 gap 與剩餘自由空間。子元素的 margin box 會被排除；同一 flex line / grid row track 內較矮 / 較窄的子元素 cross-axis 剩餘空間（例如 `align-items: flex-start` 時下方留白）也會一併排除。每個 hole 邊界再加上紫色虛線強調
+- **Flex / Grid 間隙疊加層** — DevTools 風格的 45° 紫色斜紋標示真正的 gap 與佈局剩餘空間。Flex 容器使用 content box 與 item separator 紫色虛線，斜紋標示 main-axis gap / distributed space，以及多行時的 cross-axis gap / distributed space；Grid 容器保留 track-aware gap 斜紋
 - **CSS Grid 線條** — 疊加顯示 Grid 容器的欄與列邊界
 - **DOM 導航** — 使用方向鍵在父/子元素之間切換
 - **8 種測量單位** — px、rem、vw、vh、pt、in、cm、mm；按 `U` 輪流切換可自訂的單位組合（預設：px → rem → vw → vh）
@@ -364,7 +364,7 @@ Measure Inspector+（Measure Inspector Plus）是一款 Chrome 擴充功能，�
 | 疊加層 | 說明 |
 |--------|------|
 | 盒模型色環 | 以彩色區塊標示 margin / border / padding / content，並附上數值標籤 |
-| Flex / Grid 間隙斜紋 | 以 45° 紫色斜紋填滿「容器 content box − 每個子元素的 margin box」，並在同一 flex line / grid row track 內把較矮 / 較窄子元素的 cross-axis 剩餘空間也視為子元素佔用，從斜紋區排除。每個 hole 加上紫色虛線邊框。當 selected（或無 selected 時的 hovered）元素的 `display` 為 `flex` / `inline-flex` / `grid` / `inline-grid` 時觸發 |
+| Flex / Grid 間隙斜紋 | Flex 以 45° 紫色斜紋標示 main-axis gap / distributed space，以及多行時的 cross-axis gap / distributed space，並以紫色虛線標示容器 content box 與 item separator；Grid 則保留 track-aware gap 斜紋。當 selected（或無 selected 時的 hovered）元素的 `display` 為 `flex` / `inline-flex` / `grid` / `inline-grid` 時觸發 |
 | CSS Grid 線條 | 虛線標示 Grid 容器的欄與列邊界 |
 | 元素延伸線 | 紅色虛線從選取元素的四個邊延伸至可視區域邊界 |
 | 鄰近元素距離標籤 | 未選取元素時，顯示游標懸停元素與最近非祖先元素之間的距離 |
@@ -520,8 +520,8 @@ Measure Inspector+ 會自動在相鄰的平行參考線之間繪製距離標籤�
 | Border 區域 | 黃色 | 選取元素 |
 | Padding 區域 | 綠色 | 選取元素 |
 | Content 區域 | 藍色 | 選取元素 |
-| Flex / Grid 間隙斜紋 | 紫色 45° 斜紋 | 選取的 flex / grid 容器；排除子元素 margin 與同 line 內 cross-axis 剩餘空間 |
-| Flex / Grid 間隙邊界 | 紫色虛線 | 沿著斜紋區產生的每個 line-expanded hole 邊緣標示 |
+| Flex / Grid 間隙斜紋 | 紫色 45° 斜紋 | 選取的 flex / grid 容器；flex 標示 main-axis gap / distributed space 與多行 cross-axis 空間，grid 標示 track gap |
+| Flex / Grid 間隙邊界 | 紫色虛線 | Flex 容器 content box 與 item separator；Grid gap hole 邊界 |
 | CSS Grid 欄 / 列線 | 紫色實線外框與虛線軌道線 | 選取 Grid 容器 |
 
 #### 框選
