@@ -1709,9 +1709,14 @@
         S.selected.forEach(el => drawGridLines(el));
         S.selected.forEach(el => drawBoxModelOverlay(el, 'labels'));
       }
+      const shouldDrawHovered = S.hovered && !S.selected.includes(S.hovered) && pointerInViewport();
+      if (shouldDrawHovered && S.selected.length > 0) {
+        drawFlexGridGapOverlay(S.hovered);
+        drawGridLines(S.hovered);
+      }
       drawInterSelectedDistances();
       drawDistances();
-      if (S.hovered && S.selected.length === 0 && pointerInViewport()) {
+      if (shouldDrawHovered && S.selected.length === 0) {
         drawBoxModelOverlay(S.hovered, 'fills');
         drawFlexGridGapOverlay(S.hovered);
         drawGridLines(S.hovered);
